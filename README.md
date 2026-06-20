@@ -2,13 +2,43 @@
 
 An enforcement and safety layer for AI-assisted development at the BC Government. This repository installs local git hooks and shell safety wrappers to prevent common AI accidents, secure repositories, and maintain compliant development workflows.
 
-AI agents (such as GitHub Copilot Workspace or agentic coders) run within local development environments. While powerful, they can introduce specific risks such as accidental credential leaks, bypassing local tests/hooks using `--no-verify`, or attempting to push code directly to protected branches. This repository prevents these accidents by intercepting critical commands at the shell and repository level.
+---
+
+## Installation
+
+Run the one-liner setup script (requires `bash` and `curl`):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/bcgov/agent-guardrails/main/setup.sh | bash
+```
+
+Alternatively, clone the repository and run the setup script locally:
+
+```bash
+git clone https://github.com/bcgov/agent-guardrails.git
+cd agent-guardrails && ./setup.sh
+```
+
+After installation, restart your terminal or run `source ~/.bashrc` to load the safety wrappers.
+
+### Verification
+Confirm the wrappers are active by checking that git is defined as a function:
+```bash
+type git
+```
+Running a blocked command (like `git config`) should trigger a blocked error message.
+
+### Bypassing (For Human Developers)
+Legitimate overrides can be performed by prefixing commands with the `command` keyword:
+```bash
+command git config --local user.email "your.email@gov.bc.ca"
+```
 
 ---
 
 ## What Is Blocked?
 
-The safety wrappers intercept commands and block specific actions and arguments based on repository policy:
+The safety wrappers intercept commands and block specific actions based on repository policy:
 
 | Tool | Blocked Action / Argument | Reason for Policy |
 | :--- | :--- | :--- |
@@ -27,96 +57,19 @@ The safety wrappers intercept commands and block specific actions and arguments 
 
 ---
 
-## How Do the Safety Wrappers Run?
-
-Sourcing shell profiles behaves differently depending on how a command session is initialized:
-
-### Interactive Shell Loading
-When you start a terminal session, your interactive shell reads and executes `~/.bashrc`. The installer appends a loader block to your `~/.bashrc` which sources `git-safety.sh`. This defines shell functions (`git`, `gh`, `npm`, `npx`) that intercept execution.
+## How It Works
 
 ### Non-Interactive Shell Loading (AI Agent Coverage)
-Many AI coding agents execute commands within non-interactive sub-shells. Bash does not load `~/.bashrc` for non-interactive shells, which normally means safety functions would be bypassed and lost.
-
-To guarantee coverage, our loader block in `~/.bashrc` exports the `BASH_ENV` environment variable:
+Many AI coding agents execute commands within non-interactive sub-shells. Because Bash does not load `~/.bashrc` for non-interactive shells, the installer exports the `BASH_ENV` environment variable:
 
 ```bash
 export BASH_ENV="$HOME/.githooks/git-safety.sh"
 ```
 
-When a non-interactive Bash sub-shell is initialized (such as when an AI agent runs shell commands), Bash automatically checks the `BASH_ENV` variable and sources the file it points to before executing any script or command. This ensures the safety wrappers remain active and cannot be avoided by running tasks in the background.
+When a non-interactive Bash sub-shell is initialized, Bash automatically checks `BASH_ENV` and sources the file it points to before executing any script or command. This ensures safety wrappers remain active during background agent runs.
 
----
-
-## Bypassing the Wrappers (For Human Developers)
-
-If you are a human developer and legitimately need to execute a blocked command (such as altering a repository configuration or merging a PR via CLI), you can bypass the safety wrappers by prefixing the command with the shell keyword `command`:
-
-```bash
-command git config --local user.email "your.email@gov.bc.ca"
-command gh pr merge 123
-```
-
-Using the `command` prefix instructs the shell to run the raw binary executable from your PATH instead of calling the safety shell wrapper function.
-
----
-
-## Verifying the Installation
-
-To verify that the guardrails are active in your current shell:
-
-1. Check if git is wrapped by running:
-   ```bash
-   type git
-   ```
-   This should output that `git is a shell function`.
-
-2. Test the wrapper block by running:
-   ```bash
-   git config
-   ```
-   It should return a `BLOCKED: AI Agents are STRICTLY FORBIDDEN...` error message.
-
----
-
-## Security Model and Limitations
-
-These guardrails serve as a safety net and a gentle nudge to guide helpful, well-intentioned AI agents away from accidental mistakes, bypassed hooks, and bad engineering practices.
-
-They do not constitute a security boundary or a bulletproof cage capable of containing malicious code or a malicious AI. A bad-faith agent with execution access can easily override shell functions, unset environment variables, or delete local hooks. Security policies must be enforced at the server/repository level (such as branch protection rules and CI pipelines), not solely on the local workstation.
-
----
-
-## How Are They Arranged?
-
-The repository is structured logically around the setup automation and the assets it deploys:
-
-*   [setup.sh](file:///home/derek/Repos/agent-guardrails/setup.sh) - The main installer script. It detects the OS, downloads the correct `gitleaks` binary, copies hooks and wrappers, and updates shell configuration files.
-*   [scripts/hooks/](file:///home/derek/Repos/agent-guardrails/scripts/hooks) - Templates for global git hooks:
-    *   `pre-commit`: Triggers local `gitleaks` scanning.
-    *   `pre-push`: Validates the destination branch.
-*   [scripts/git-safety.sh](file:///home/derek/Repos/agent-guardrails/scripts/git-safety.sh) - Contains the safety shell functions that wrap `git`, `gh`, `npm`, and `npx` to check arguments for unsafe patterns.
-
----
-
-## How to Install Them
-
-### Standard One-Liner (Recommended)
-You can install the guardrails directly without cloning the repository:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/bcgov/agent-guardrails/main/setup.sh | bash
-```
-
-### Local Installation
-Alternatively, clone the repository and run the setup script locally:
-
-```bash
-git clone https://github.com/bcgov/agent-guardrails.git
-cd agent-guardrails && ./setup.sh
-```
-
-> [!NOTE]
-> After installation, you must restart your terminal or run `source ~/.bashrc` to load the safety wrappers.
+### Security Model and Limitations
+These guardrails serve as a safety net and a gentle nudge for helpful, well-intentioned AI agents. They do not constitute a security boundary or a bulletproof cage against malicious code. Bad-faith agents can easily override shell functions or delete local hooks. Real security must be enforced at the server/repository level (such as branch protection rules and CI pipelines).
 
 ---
 
