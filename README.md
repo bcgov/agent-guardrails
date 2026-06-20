@@ -1,30 +1,59 @@
-# 🛡️ Agent Guardrails
+# Agent Guardrails
 
-> **The safety and enforcement layer for AI-assisted development at the BC Government.**
-
-`agent-guardrails` provides local enforcement to prevent common AI accidents, ensure repository compliance, and maintain coding standards. It acts as the execution-time guardrail, intercepting critical commands to keep the development loop secure.
+An enforcement and safety layer for AI-assisted development at the BC Government. This repository installs local hooks and shell wrappers to prevent common AI accidents, secure repositories, and maintain compliant development workflows.
 
 ---
 
-## 🚀 Key Features
+## What Are These Guardrails?
 
-*   🔒 **Automated Secrets Scanning** — Integrates `gitleaks` locally to block secrets from being committed.
-*   🚫 **AI Accident Prevention** — Wraps git commands to prevent agents from bypassing hooks (e.g. `--no-verify`), modifying global configs, or merging PRs directly.
-*   📌 **Branch Protection** — Restricts direct commits and pushes to protected branches (`main`/`master`).
-*   ⚙️ **Interactive Git Setup** — Optional configuration script to set up robust, human-friendly Git defaults.
+These guardrails consist of a local security system that wraps critical commands and implements global git hooks:
+
+1.  **Secret Scanner (gitleaks)** - Scans all commits locally for API keys, credentials, and secrets before they can be committed.
+2.  **Global Git Hooks (pre-commit and pre-push)** - Intercepts git actions:
+    *   `pre-commit`: Runs `gitleaks` and blocks version regressions.
+    *   `pre-push`: Prevents direct pushes to protected branches like `main` or `master`.
+3.  **Shell Safety Wrappers (git-safety.sh)** - Sourced in the shell (`~/.bashrc`) to intercept commands executed by development agents or humans, blocking unsafe actions:
+    *   Prevents bypassing hooks (e.g., `git commit --no-verify`).
+    *   Blocks altering global git configuration (e.g., `git config --global`).
+    *   Blocks direct command-line pull request merges (e.g., `gh pr merge`).
 
 ---
 
-## 📦 Quick Install
+## Why Were They Selected?
 
-### Core Installation
-Run the one-liner setup script (requires `bash` and `curl`):
+AI agents (such as GitHub Copilot Workspace or agentic coders) run within local development environments. While powerful, they can introduce specific risks:
+
+*   **Accidental Secret Exposure** - Agents often generate mock keys or accidentally commit raw environment variables. Pre-commit `gitleaks` intercepts these before they hit git history.
+*   **Bypassing Repository Safety** - When a test or hook fails, an agent's default instinct is often to bypass it using `--no-verify`. The shell wrappers actively block this bypass.
+*   **Altering Environment State** - Agents sometimes modify global Git configs or shell profiles to force execution. Wrapping `git config` keeps changes isolated and explicit.
+*   **Direct Push Failures** - Agents may attempt to push code directly to `main` to speed up tasks. The `pre-push` hook enforces feature branch workflows.
+
+---
+
+## How Are They Arranged?
+
+The repository is structured logically around the setup automation and the assets it deploys:
+
+*   [setup.sh](file:///home/derek/Repos/agent-guardrails/setup.sh) - The main installer script. It detects the OS, downloads the correct `gitleaks` binary, copies hooks and wrappers, and updates shell configuration files.
+*   [scripts/hooks/](file:///home/derek/Repos/agent-guardrails/scripts/hooks) - Templates for global git hooks:
+    *   `pre-commit`: Triggers local `gitleaks` scanning.
+    *   `pre-push`: Validates the destination branch.
+*   [scripts/git-safety.sh](file:///home/derek/Repos/agent-guardrails/scripts/git-safety.sh) - Contains the safety shell functions that wrap `git`, `gh`, `npm`, and `npx` to check arguments for unsafe patterns.
+*   [scripts/git-setup.sh](file:///home/derek/Repos/agent-guardrails/scripts/git-setup.sh) - An optional, interactive script to establish robust baseline git settings for human developers (e.g., conflict resolution, diff coloring).
+
+---
+
+## How to Install Them
+
+### Standard One-Liner (Recommended)
+You can install the guardrails directly without cloning the repository:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/bcgov/agent-guardrails/main/setup.sh | bash
 ```
 
-Alternatively, clone and install locally:
+### Local Installation
+Alternatively, clone the repository and run the setup script locally:
 
 ```bash
 git clone https://github.com/bcgov/agent-guardrails.git
@@ -32,10 +61,10 @@ cd agent-guardrails && ./setup.sh
 ```
 
 > [!NOTE]
-> Restart your terminal or run `source ~/.bashrc` after installation completes.
+> After installation, you must restart your terminal or run `source ~/.bashrc` to load the safety wrappers.
 
-### Optional: Git Configurations
-Set up interactive Git configuration defaults (intended for humans, not AI agents):
+### Optional: Interactive Git Config
+To configure human-friendly Git default settings, run:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/bcgov/agent-guardrails/main/scripts/git-setup.sh | bash
@@ -43,55 +72,7 @@ curl -fsSL https://raw.githubusercontent.com/bcgov/agent-guardrails/main/scripts
 
 ---
 
-## 🛠️ Installed Components
+## What is not in this repo
 
-| Component | Target Location | Purpose |
-| :--- | :--- | :--- |
-| **Gitleaks** | `~/.local/bin/gitleaks` | Local scanning for API keys and secrets on commit. |
-| **Global Hooks** | `~/.githooks/` | Pre-commit (Gitleaks, version control check) and pre-push hooks. |
-| **Shell Safety Wrappers** | `~/.githooks/git-safety.sh` | Shell wrappers loaded in `~/.bashrc` to block unsafe commands. |
-
----
-
-## 🗺️ Relationship to the AI Stack
-
-`agent-guardrails` is the enforcement layer. Guidelines and tools live in separate repositories:
-
-```mermaid
-graph TD
-    classDef primary fill:#1f4e79,stroke:#122f4a,stroke-width:2px,color:#fff;
-    classDef secondary fill:#2e7d32,stroke:#1b5e20,stroke-width:2px,color:#fff;
-    
-    CI["📋 bcgov/copilot-instructions<br>(Behavioural Standards)"]:::secondary
-    AS["📦 bcgov/agent-skills<br>(Reusable Skill Profiles)"]:::secondary
-    AG["🛡️ bcgov/agent-guardrails<br>(Enforcement Wrappers)"]:::primary
-
-    CI -->|Defines standards enforced by| AG
-    AS -->|Customizes tools run within| AG
-```
-
-### 🚫 What is not in this repo
-
-*   **Copilot Instructions** — [bcgov/copilot-instructions](https://github.com/bcgov/copilot-instructions) contains the shared behavioural markdown guidelines. To add instruction text to your project, fetch it directly:
-    ```bash
-    curl -fsSL https://raw.githubusercontent.com/bcgov/copilot-instructions/main/copilot-instructions.md \
-      -o .github/copilot-instructions.md
-    ```
-*   **Agent Skills Catalog** — [bcgov/agent-skills](https://github.com/bcgov/agent-skills) is a community catalogue of reusable agent skill profiles.
-
----
-
-## 🤝 Contributing
-
-Contributions to improve our shared guardrails are welcome! 
-Before submitting a Pull Request, please test your changes locally:
-```bash
-./setup.sh
-```
-
----
-
-## 📄 Attribution
-
-*   Shell safety patterns adapted from [bcgov/copilot-instructions](https://github.com/bcgov/copilot-instructions).
-*   Git configuration patterns inspired by [GitButler](https://blog.gitbutler.com/how-git-core-devs-configure-git).
+*   **Shared Copilot Guidelines** - [bcgov/copilot-instructions](https://github.com/bcgov/copilot-instructions) contains the shared behavioural guidelines.
+*   **Agent Skills** - [bcgov/agent-skills](https://github.com/bcgov/agent-skills) is a community catalogue of reusable agent skill profiles.
