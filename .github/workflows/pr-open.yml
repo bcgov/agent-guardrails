@@ -75,12 +75,13 @@ jobs:
     needs: [lint, test-install]
     if: always()
     steps:
-      - name: Check Status
-        shell: bash
+      - name: Fail if any required job failed or was cancelled
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
         run: |
           set -euo pipefail
-          if [[ "${{ needs.lint.result }}" == "failure" || "${{ needs.test-install.result }}" == "failure" ]]; then
-            echo "CI Verification failed." >&2
-            exit 1
-          fi
-          echo "CI Verification passed."
+          echo "At least one required job failed or was cancelled."
+          echo '${{ toJSON(needs) }}'
+          exit 1
+
+      - name: All required jobs passed
+        run: echo "All required jobs passed (or were intentionally skipped)."
