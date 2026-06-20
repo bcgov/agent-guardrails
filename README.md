@@ -68,6 +68,37 @@ When a non-interactive Bash sub-shell is initialized (such as when an AI agent r
 
 ---
 
+## Bypassing the Wrappers (For Human Developers)
+
+If you are a human developer and legitimately need to execute a blocked command (such as altering a repository configuration or merging a PR via CLI), you can bypass the safety wrappers by prefixing the command with the shell keyword `command`:
+
+```bash
+command git config --local user.email "your.email@gov.bc.ca"
+command gh pr merge 123
+```
+
+Using the `command` prefix instructs the shell to run the raw binary executable from your PATH instead of calling the safety shell wrapper function.
+
+---
+
+## Verifying the Installation
+
+To verify that the guardrails are active in your current shell:
+
+1. Check if git is wrapped by running:
+   ```bash
+   type git
+   ```
+   This should output that `git is a shell function`.
+
+2. Test the wrapper block by running:
+   ```bash
+   git config
+   ```
+   It should return a `BLOCKED: AI Agents are STRICTLY FORBIDDEN...` error message.
+
+---
+
 ## How Are They Arranged?
 
 The repository is structured logically around the setup automation and the assets it deploys:
