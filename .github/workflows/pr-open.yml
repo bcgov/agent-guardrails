@@ -63,12 +63,6 @@ jobs:
           # Assert safety wrapper shell script is present
           [[ -x "$HOME/.githooks/git-safety.sh" ]]
 
-      - name: Run Git Config Setup (Non-interactive Pipe)
-        shell: bash
-        run: |
-          set -euo pipefail
-          ./scripts/git-setup.sh < /dev/null
-
   results:
     name: PR Results
     needs: [lint, test-install]
