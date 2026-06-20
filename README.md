@@ -1,63 +1,79 @@
 # Agent Guardrails
 
-Enforcement layer for AI-assisted development at BC Government: shell safety wrappers, global git hooks, and optional human git configuration.
+An enforcement and safety layer for AI-assisted development at the BC Government. This repository installs local git hooks and shell safety wrappers to prevent common AI accidents, secure repositories, and maintain compliant development workflows.
 
-This repo is **operational guardrails only** — not instruction text. Behavioural standards live in [bcgov/copilot-instructions](https://github.com/bcgov/copilot-instructions).
+---
 
-## Quick install
+## Installation
+
+Run the one-liner setup script (requires `bash` and `curl`):
 
 ```bash
-# One-liner (curl mode — fetches latest main)
 curl -fsSL https://raw.githubusercontent.com/bcgov/agent-guardrails/main/setup.sh | bash
+```
 
-# Or clone and run locally
+Alternatively, clone the repository and run the setup script locally:
+
+```bash
 git clone https://github.com/bcgov/agent-guardrails.git
 cd agent-guardrails && ./setup.sh
 ```
 
-## What gets installed
+After installation, restart your terminal or run `source ~/.bashrc` to load the safety wrappers.
 
-| Component | Destination | Purpose |
-|-----------|-------------|---------|
-| Gitleaks | `~/.local/bin/gitleaks` | Secret scanning on commit |
-| Global hooks | `~/.githooks/` | pre-commit (gitleaks + version regression), pre-push (block main/master) |
-| Shell safety | `~/.githooks/git-safety.sh` + `~/.bashrc` loader | Blocks `git config`, `--no-verify`, `gh pr merge`, etc. |
+### Verification
+Confirm the wrappers are active by checking that git is defined as a function:
+```bash
+type git
+```
+Running a blocked command (like `git config`) should trigger a blocked error message.
 
-Restart your terminal or run `source ~/.bashrc` after install.
+### Bypassing (For Human Developers)
+Legitimate overrides can be performed by prefixing commands with the `command` keyword:
+```bash
+command git config --local user.email "your.email@gov.bc.ca"
+```
 
-## Optional: Git configuration
+---
 
-Human git defaults (interactive — not AI instructions):
+## What Is Blocked?
+
+The safety wrappers intercept commands and block specific actions based on repository policy:
+
+| Tool | Blocked Action / Argument | Reason for Policy |
+| :--- | :--- | :--- |
+| **git** | `commit --no-verify`, `commit -n` | Prevents agents from bypassing commit hooks. |
+| **git** | `config` subcommand | Prevents modifications to global configurations. |
+| **git** | `tag` subcommand, `push --tags` | Restricts automated release/tag creation. |
+| **git** | `rebase -i`, `--interactive`, `squash`, `fixup`, `--autosquash` | Avoids squashing or history rewrite in branch history. |
+| **git** | `merge --squash` | Blocks squashing commits during PR merge. |
+| **gh** | `release` | Blocks automated release management. |
+| **gh** | `repo delete` | Prevents destructive repository deletions. |
+| **gh** | `secret` | Restricts automated credential/secret modifications. |
+| **gh** | `issue comment`, `pr comment`, `pr review` | Prevents impersonation of human developers in discussions. |
+| **gh** | `pr merge` | Forces PR merges to be performed manually by a human reviewer. |
+| **npm / npx** | `--legacy-peer-deps` | Prevents dirty dependency resolution bypasses. |
+| **npm / npx** | `NPM_CONFIG_LEGACY_PEER_DEPS` environment variable | Blocks env-level peer dependency bypasses. |
+
+---
+
+## How It Works
+
+### Non-Interactive Shell Loading (AI Agent Coverage)
+Many AI coding agents execute commands within non-interactive sub-shells. Because Bash does not load `~/.bashrc` for non-interactive shells, the installer exports the `BASH_ENV` environment variable:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bcgov/agent-guardrails/main/scripts/git-setup.sh | bash
+export BASH_ENV="$HOME/.githooks/git-safety.sh"
 ```
+
+When a non-interactive Bash sub-shell is initialized, Bash automatically checks `BASH_ENV` and sources the file it points to before executing any script or command. This ensures safety wrappers remain active during background agent runs.
+
+### Security Model and Limitations
+These guardrails serve as a safety net and a gentle nudge for helpful, well-intentioned AI agents. They do not constitute a security boundary or a bulletproof cage against malicious code. Bad-faith agents can easily override shell functions or delete local hooks. Real security must be enforced at the server/repository level (such as branch protection rules and CI pipelines).
+
+---
 
 ## What is not in this repo
 
-- **Copilot instructions** — [bcgov/copilot-instructions](https://github.com/bcgov/copilot-instructions)
-- **Personal instructions or bundling** — maintain outside bcgov work repos (personal or team machine config)
-
-## Relationship to the AI stack
-
-```
-copilot-instructions  →  shared work standards (root copilot-instructions.md, ≤4k)
-agent-guardrails      →  enforcement (hooks, shell wrappers)  ← you are here
-```
-
-Instruction text lives in [bcgov/copilot-instructions](https://github.com/bcgov/copilot-instructions) as [`copilot-instructions.md`](https://github.com/bcgov/copilot-instructions/blob/main/copilot-instructions.md) at the **repo root** (renamed/moved from `.github/copilot-instructions.md`). Copy into a consuming project as `.github/copilot-instructions.md`:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/bcgov/copilot-instructions/main/copilot-instructions.md \
-  -o .github/copilot-instructions.md
-```
-
-Personal or team-specific rules stay outside bcgov work repos and merge locally if needed.
-
-## Contributing
-
-Submit PRs to improve shared guardrails. Test locally with `./setup.sh` before opening a PR.
-
-## Attribution
-
-Shell safety patterns from [bcgov/copilot-instructions](https://github.com/bcgov/copilot-instructions) (guardrails split). Git setup patterns from [GitButler](https://blog.gitbutler.com/how-git-core-devs-configure-git).
+*   **Shared Copilot Guidelines** - [bcgov/copilot-instructions](https://github.com/bcgov/copilot-instructions) contains the shared behavioural guidelines.
+*   **Agent Skills** - [bcgov/agent-skills](https://github.com/bcgov/agent-skills) is a community catalogue of reusable agent skill profiles.
