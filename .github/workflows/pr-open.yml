@@ -70,18 +70,22 @@ jobs:
           ./scripts/git-setup.sh < /dev/null
 
   results:
-    name: Verification Results
-    runs-on: ubuntu-24.04
+    name: PR Results
     needs: [lint, test-install]
     if: always()
+    runs-on: ubuntu-slim
+    timeout-minutes: 1
     steps:
-      - name: Fail if any required job failed or was cancelled
+      - name: Log Job Results Context
+        run: |
+          echo "=== Upstream Job Statuses ==="
+          echo '${{ toJson(needs) }}'
+
+      - name: Evaluate Overall Status
         if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
         run: |
-          set -euo pipefail
-          echo "At least one required job failed or was cancelled."
-          echo '${{ toJSON(needs) }}'
+          echo "❌ Critical Check Failure: At least one required job has failed or was cancelled."
           exit 1
 
-      - name: All required jobs passed
-        run: echo "All required jobs passed (or were intentionally skipped)."
+      - name: Success Message
+        run: echo "✅ All critical checks passed or were intentionally skipped!"
