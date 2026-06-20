@@ -1,0 +1,91 @@
+name: PR
+
+on: pull_request
+
+permissions: {}
+
+jobs:
+  lint:
+    name: ShellCheck Lint
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run ShellCheck
+        shell: bash
+        run: |
+          set -euo pipefail
+          shellcheck setup.sh scripts/*.sh scripts/hooks/*
+
+      # Conventional commits
+      - name: Conventional Commits
+        uses: amannn/action-semantic-pull-request@48f256284bd46cdaab1048c3721360e808335d50 # v6.1.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  test-install:
+    name: Dry-Run Installation
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Mock Git user
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config --global user.name "Test User"
+          git config --global user.email "test@example.com"
+
+      - name: Run Installer Script
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./setup.sh
+
+      - name: Verify Hooks and Safety Wrapper Installation
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Assert hook binaries were copied and made executable
+          [[ -x "$HOME/.githooks/pre-commit" ]]
+          [[ -x "$HOME/.githooks/pre-push" ]]
+          
+          # Assert bashrc loader was appended
+          grep -q "bcgov/agent-guardrails" "$HOME/.bashrc"
+          
+          # Assert safety wrapper shell script is present
+          [[ -x "$HOME/.githooks/git-safety.sh" ]]
+
+      - name: Run Git Config Setup (Non-interactive Pipe)
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./scripts/git-setup.sh < /dev/null
+
+  results:
+    name: PR Results
+    needs: [lint, test-install]
+    if: always()
+    runs-on: ubuntu-slim
+    timeout-minutes: 1
+    steps:
+      - name: Log Job Results Context
+        run: |
+          echo "=== Upstream Job Statuses ==="
+          echo '${{ toJson(needs) }}'
+
+      - name: Evaluate Overall Status
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: |
+          echo "❌ Critical Check Failure: At least one required job has failed or was cancelled."
+          exit 1
+
+      - name: Success Message
+        run: echo "✅ All critical checks passed or were intentionally skipped!"
