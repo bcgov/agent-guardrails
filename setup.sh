@@ -24,11 +24,11 @@ read_input() {
   local var_name="$2"
   printf -v "$var_name" '%s' ''
   if [ -t 0 ]; then
-    read -r -p "$prompt" "$var_name" || true
+    read -r -p "$prompt" "${var_name?}" || true
   elif [ -c /dev/tty ] && { true </dev/tty; } 2>/dev/null; then
-    read -r -p "$prompt" "$var_name" < /dev/tty || true
+    read -r -p "$prompt" "${var_name?}" < /dev/tty || true
   else
-    read -r -p "$prompt" "$var_name" < /dev/null || true
+    read -r -p "$prompt" "${var_name?}" < /dev/null || true
   fi
 }
 
