@@ -12,10 +12,7 @@ These guardrails consist of a local security system that wraps critical commands
 2.  **Global Git Hooks (pre-commit and pre-push)** - Intercepts git actions:
     *   `pre-commit`: Runs `gitleaks` and blocks version regressions.
     *   `pre-push`: Prevents direct pushes to protected branches like `main` or `master`.
-3.  **Shell Safety Wrappers (git-safety.sh)** - Sourced in the shell (`~/.bashrc`) to intercept commands executed by development agents or humans, blocking unsafe actions:
-    *   Prevents bypassing hooks (e.g., `git commit --no-verify`).
-    *   Blocks altering global git configuration (e.g., `git config --global`).
-    *   Blocks direct command-line pull request merges (e.g., `gh pr merge`).
+3.  **Shell Safety Wrappers (git-safety.sh)** - Sourced in the shell (`~/.bashrc`) to intercept commands executed by development agents or humans, blocking unsafe actions.
 
 ---
 
@@ -27,6 +24,47 @@ AI agents (such as GitHub Copilot Workspace or agentic coders) run within local 
 *   **Bypassing Repository Safety** - When a test or hook fails, an agent's default instinct is often to bypass it using `--no-verify`. The shell wrappers actively block this bypass.
 *   **Altering Environment State** - Agents sometimes modify global Git configs or shell profiles to force execution. Wrapping `git config` keeps changes isolated and explicit.
 *   **Direct Push Failures** - Agents may attempt to push code directly to `main` to speed up tasks. The `pre-push` hook enforces feature branch workflows.
+
+---
+
+## What Is Blocked?
+
+The safety wrappers intercept commands and block specific actions and arguments based on repository policy:
+
+| Tool | Blocked Action / Argument | Reason for Policy |
+| :--- | :--- | :--- |
+| **git** | `commit --no-verify`, `commit -n` | Prevents agents from bypassing commit hooks. |
+| **git** | `config` subcommand | Prevents modifications to global configurations. |
+| **git** | `tag` subcommand, `push --tags` | Restricts automated release/tag creation. |
+| **git** | `rebase -i`, `--interactive`, `squash`, `fixup`, `--autosquash` | Avoids squashing or history rewrite in branch history. |
+| **git** | `merge --squash` | Blocks squashing commits during PR merge. |
+| **gh** | `release` | Blocks automated release management. |
+| **gh** | `repo delete` | Prevents destructive repository deletions. |
+| **gh** | `secret` | Restricts automated credential/secret modifications. |
+| **gh** | `issue comment`, `pr comment`, `pr review` | Prevents impersonation of human developers in discussions. |
+| **gh** | `pr merge` | Forces PR merges to be performed manually by a human reviewer. |
+| **npm / npx** | `--legacy-peer-deps` | Prevents dirty dependency resolution bypasses. |
+| **npm / npx** | `NPM_CONFIG_LEGACY_PEER_DEPS` environment variable | Blocks env-level peer dependency bypasses. |
+
+---
+
+## How Do the Safety Wrappers Run?
+
+Sourcing shell profiles behaves differently depending on how a command session is initialized:
+
+### Interactive Shell Loading
+When you start a terminal session, your interactive shell reads and executes `~/.bashrc`. The installer appends a loader block to your `~/.bashrc` which sources `git-safety.sh`. This defines shell functions (`git`, `gh`, `npm`, `npx`) that intercept execution.
+
+### Non-Interactive Shell Loading (AI Agent Coverage)
+Many AI coding agents execute commands within non-interactive sub-shells. Bash does not load `~/.bashrc` for non-interactive shells, which normally means safety functions would be bypassed and lost.
+
+To guarantee coverage, our loader block in `~/.bashrc` exports the `BASH_ENV` environment variable:
+
+```bash
+export BASH_ENV="$HOME/.githooks/git-safety.sh"
+```
+
+When a non-interactive Bash sub-shell is initialized (such as when an AI agent runs shell commands), Bash automatically checks the `BASH_ENV` variable and sources the file it points to before executing any script or command. This ensures the safety wrappers remain active and cannot be avoided by running tasks in the background.
 
 ---
 
