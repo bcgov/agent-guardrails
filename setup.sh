@@ -18,6 +18,19 @@ fi
 HOOKS_DIR="$HOME/.githooks"
 BIN_DIR="$HOME/.local/bin"
 
+# Helper function to read user input safely (handles piped installation correctly)
+read_input() {
+  local prompt="$1"
+  local var_name="$2"
+  if [ -t 0 ]; then
+    read -r -p "$prompt" "$var_name" || true
+  elif [ -c /dev/tty ] && { true </dev/tty; } 2>/dev/null; then
+    read -r -p "$prompt" "$var_name" < /dev/tty || true
+  else
+    read -r -p "$prompt" "$var_name" < /dev/null || true
+  fi
+}
+
 _real_git() {
   local git_bin=""
   while IFS= read -r dir; do
@@ -125,7 +138,7 @@ install_hooks() {
   if [[ -n "${current_hooks_path:-}" ]] && [[ "$current_hooks_path" != "$HOOKS_DIR" ]]; then
     echo "WARNING: Your global git core.hooksPath is currently set to: $current_hooks_path" >&2
     echo "This script will change it to: $HOOKS_DIR" >&2
-    read -r -p "Do you want to proceed? [y/N]: " answer
+    read_input "Do you want to proceed? [y/N]: " answer
     if [[ "${answer:-n}" != "y" ]] && [[ "${answer:-n}" != "Y" ]]; then
       echo "Skipped updating global core.hooksPath. Hooks were copied to $HOOKS_DIR." >&2
       return 0
