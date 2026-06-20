@@ -99,6 +99,14 @@ To verify that the guardrails are active in your current shell:
 
 ---
 
+## Security Model and Limitations
+
+These guardrails serve as a safety net and a gentle nudge to guide helpful, well-intentioned AI agents away from accidental mistakes, bypassed hooks, and bad engineering practices. 
+
+They do not constitute a security boundary or a bulletproof cage capable of containing malicious code or a malicious AI. A bad-faith agent with execution access can easily override shell functions, unset environment variables, or delete local hooks. Security policies must be enforced at the server/repository level (such as branch protection rules and CI pipelines), not solely on the local workstation.
+
+---
+
 ## How Are They Arranged?
 
 The repository is structured logically around the setup automation and the assets it deploys:
