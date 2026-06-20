@@ -26,6 +26,19 @@ print_skip() {
   echo -e "${YELLOW}→ $1${NC}"
 }
 
+# Helper function to read user input safely (handles piped installation correctly)
+read_input() {
+  local prompt="$1"
+  local var_name="$2"
+  if [ -t 0 ]; then
+    read -r -p "$prompt" "$var_name" || true
+  elif [ -c /dev/tty ] && { true </dev/tty; } 2>/dev/null; then
+    read -r -p "$prompt" "$var_name" < /dev/tty || true
+  else
+    read -r -p "$prompt" "$var_name" < /dev/null || true
+  fi
+}
+
 # Function to set git config only if not already set
 set_git_config() {
   local key="$1"
@@ -53,7 +66,7 @@ configure_user() {
   current_email=$(command git config --global --get user.email 2>/dev/null || true)
   
   if [[ -z "$current_name" ]]; then
-    read -r -p "What is your name? " name
+    read_input "What is your name? " name
     if [[ -n "$name" ]]; then
       command git config --global user.name "$name"
       print_success "Set user.name = $name"
@@ -63,7 +76,7 @@ configure_user() {
   fi
   
   if [[ -z "$current_email" ]]; then
-    read -r -p "What is your email address? " email
+    read_input "What is your email address? " email
     if [[ -n "$email" ]]; then
       command git config --global user.email "$email"
       print_success "Set user.email = $email"
@@ -86,7 +99,7 @@ configure_gitignore() {
     echo "  1) Replace - overwrite with recommended patterns"
     echo "  2) Append - add recommended patterns to existing file"
     echo "  3) Skip - keep current file unchanged"
-    read -r -p "Choose [1/2/3] (default: 3): " choice
+    read_input "Choose [1/2/3] (default: 3): " choice
     
     case "${choice}" in
       1)
@@ -223,7 +236,7 @@ configure_commit_signing() {
   echo "Enable signed commits with this key?"
   echo "  1) Yes - enable SSH commit signing"
   echo "  2) Skip - do not configure signing"
-  read -r -p "Choose [1/2] (default: 2): " choice
+  read_input "Choose [1/2] (default: 2): " choice
   
   case "${choice}" in
     1)
