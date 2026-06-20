@@ -31,11 +31,11 @@ read_input() {
   local prompt="$1"
   local var_name="$2"
   if [ -t 0 ]; then
-    read -r -p "$prompt" "$var_name" || true
+    read -r -p "$prompt" "${var_name?}" || true
   elif [ -c /dev/tty ] && { true </dev/tty; } 2>/dev/null; then
-    read -r -p "$prompt" "$var_name" < /dev/tty || true
+    read -r -p "$prompt" "${var_name?}" < /dev/tty || true
   else
-    read -r -p "$prompt" "$var_name" < /dev/null || true
+    read -r -p "$prompt" "${var_name?}" < /dev/null || true
   fi
 }
 
@@ -60,6 +60,8 @@ set_git_config() {
 configure_user() {
   print_header "Git User Configuration"
   
+  local name=""
+  local email=""
   local current_name
   local current_email
   current_name=$(command git config --global --get user.name 2>/dev/null || true)
@@ -90,6 +92,7 @@ configure_user() {
 configure_gitignore() {
   print_header "Global .gitignore Configuration"
   
+  local choice=""
   local current_gitignore
   current_gitignore=$(command git config --global --get core.excludesfile 2>/dev/null || true)
   
@@ -194,10 +197,9 @@ configure_commit_signing() {
   print_header "Signed Commits Configuration"
   
   # Check if signing is already configured
+  local choice=""
   local current_sign
   current_sign=$(command git config --global --get commit.gpgsign 2>/dev/null || true)
-  local current_format
-  current_format=$(command git config --global --get gpg.format 2>/dev/null || true)
   local current_key
   current_key=$(command git config --global --get user.signingkey 2>/dev/null || true)
   
