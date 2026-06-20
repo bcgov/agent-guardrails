@@ -36,15 +36,16 @@ curl -fsSL https://raw.githubusercontent.com/bcgov/agent-guardrails/main/scripts
 ## What is not in this repo
 
 - **Copilot instructions** — [bcgov/copilot-instructions](https://github.com/bcgov/copilot-instructions)
-- **Personal instructions or bundling** — maintain in your own dotfiles
+- **Personal instructions or bundling** — maintain outside bcgov work repos (personal or team machine config)
 
 ## Relationship to the AI stack
 
 ```
 copilot-instructions  →  shared work standards (text, ≤4k)
 agent-guardrails      →  enforcement (hooks, shell wrappers)  ← you are here
-dotfiles (personal)   →  merge work+personal, symlink tools, optional guardrails wrapper
 ```
+
+Consumers copy instruction text into project repos (e.g. `.github/copilot-instructions.md`) and merge with any local personal rules on their machines.
 
 ## Contributing
 
