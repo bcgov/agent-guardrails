@@ -1,6 +1,6 @@
 # Agent Guardrails
 
-AI-assisted development is a massive productivity multiplier, but introducing autonomous agents into government codebases requires guardrails. Without structure, the fear of accidental infrastructure damage or compliance slip-ups can lead organizations to ban AI tools altogether.
+AI-assisted development accelerates velocity, but autonomous agents require guardrails to protect shared environments and maintain compliance.
 
 This repository establishes a client-side safety net that intercepts standard command paths to enforce a **human-in-the-loop** workflow:
 
@@ -8,7 +8,7 @@ This repository establishes a client-side safety net that intercepts standard co
 *   **Enforced Repository Standards**: Intercepts shortcut flags (like `commit --no-verify` or `--legacy-peer-deps`) to ensure AI-generated code passes the exact same linting, testing, and dependency checks as human code.
 *   **Accountability & Attribution**: Intercepts automated Pull Request merges, secret management, and release publishing via the GitHub CLI (`gh`), preserving human review as the final gate.
 
-This is a safety belt, not a sandbox. It won't stop a malicious agent intent on breaking things, but it prevents well-intentioned agents from making automated mistakes—giving teams the confidence to embrace AI safely.
+This is a safety belt, not a sandbox. It won't stop a malicious agent, but it prevents well-intentioned tools from making automated mistakes.
 
 ---
 
