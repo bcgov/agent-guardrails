@@ -100,5 +100,5 @@ These guardrails serve as a safety net and a gentle nudge for helpful, well-inte
 
 ## What is not in this repo
 
-*   **Shared Copilot Guidelines** - [bcgov/copilot-instructions](https://github.com/bcgov/copilot-instructions) contains the shared behavioural guidelines.
+*   **Shared Agent Guidelines** - [bcgov/agent-instructions](https://github.com/bcgov/agent-instructions) contains the shared behavioural guidelines.
 *   **Agent Skills** - [bcgov/agent-skills](https://github.com/bcgov/agent-skills) is a community catalogue of reusable agent skill profiles.
