@@ -4,6 +4,20 @@ An enforcement and safety layer for AI-assisted development at the BC Government
 
 ---
 
+## Safe Adoption: Enforcing Human-in-the-Loop AI
+
+AI-assisted development is a massive productivity multiplier, but introducing autonomous agents into government codebases requires guardrails. Without structure, the fear of accidental infrastructure damage or compliance slip-ups can lead organizations to ban AI tools altogether.
+
+This repository establishes a client-side safety net that intercepts standard command paths to enforce a **human-in-the-loop** workflow:
+
+*   **Infrastructure Safeguards**: Intercepts standard `oc` and `kubectl` execution to prevent AI agents from accidentally modifying or querying live Kubernetes/OpenShift environments.
+*   **Enforced Repository Standards**: Intercepts shortcut flags (like `commit --no-verify` or `--legacy-peer-deps`) to ensure AI-generated code passes the exact same linting, testing, and dependency checks as human code.
+*   **Accountability & Attribution**: Intercepts automated Pull Request merges, secret management, and release publishing via the GitHub CLI (`gh`), preserving human review as the final gate.
+
+This is a safety belt, not a sandbox. It won't stop a malicious agent intent on breaking things, but it prevents well-intentioned agents from making automated mistakes—giving teams the confidence to embrace AI safely.
+
+---
+
 ## Installation
 
 Run the one-liner setup script (requires `bash` and `curl`):
