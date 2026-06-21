@@ -3,6 +3,28 @@
 # Clean, non-exported shell safety functions that protect against AI mistakes
 # while remaining completely transparent and bypassable for human developers.
 
+_is_ai_agent() {
+    # 1. Non-interactive shells are almost certainly agents/scripts
+    if [[ $- != *i* ]]; then
+        return 0
+    fi
+
+    # 2. Dumb terminals used by execution runners
+    if [[ "${TERM:-}" == "dumb" ]]; then
+        return 0
+    fi
+
+    # 3. Explicit environment markers injected by agent frameworks
+    if [[ -n "${ANTIGRAVITY_AGENT:-}" \
+          || -n "${AIDER_YT_VIDEO:-}" \
+          || -n "${CLINE_API_KEY:-}" \
+          || -n "${RM_CLINE:-}" ]]; then
+        return 0
+    fi
+
+    return 1
+}
+
 git() {
     # Skip during tab completion
     if [[ -z "${COMP_LINE:-}" && -z "${COMP_POINT:-}" ]]; then
@@ -245,10 +267,12 @@ npx() {
 kubectl() {
     # Skip during tab completion
     if [[ -z "${COMP_LINE:-}" && -z "${COMP_POINT:-}" ]]; then
-        echo "BLOCKED: AI Agents are STRICTLY FORBIDDEN from running Kubernetes (kubectl) commands." >&2
-        echo "         Access to Kubernetes clusters is restricted." >&2
-        echo "         HALT immediately and request manual action from the USER." >&2
-        return 1
+        if _is_ai_agent; then
+            echo "BLOCKED: AI Agents are STRICTLY FORBIDDEN from running Kubernetes (kubectl) commands." >&2
+            echo "         Access to Kubernetes clusters is restricted." >&2
+            echo "         HALT immediately and request manual action from the USER." >&2
+            return 1
+        fi
     fi
 
     command kubectl "$@"
@@ -257,10 +281,12 @@ kubectl() {
 oc() {
     # Skip during tab completion
     if [[ -z "${COMP_LINE:-}" && -z "${COMP_POINT:-}" ]]; then
-        echo "BLOCKED: AI Agents are STRICTLY FORBIDDEN from running OpenShift (oc) commands." >&2
-        echo "         Access to OpenShift is restricted." >&2
-        echo "         HALT immediately and request manual action from the USER." >&2
-        return 1
+        if _is_ai_agent; then
+            echo "BLOCKED: AI Agents are STRICTLY FORBIDDEN from running OpenShift (oc) commands." >&2
+            echo "         Access to OpenShift is restricted." >&2
+            echo "         HALT immediately and request manual action from the USER." >&2
+            return 1
+        fi
     fi
 
     command oc "$@"
