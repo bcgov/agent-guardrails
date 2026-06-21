@@ -263,7 +263,7 @@ if os.path.isdir(os.path.expanduser("~/.cursor")):
     except Exception as e:
         print(f"Failed to inject Cursor hook: {e}")
 '
-  else:
+  else
     echo "WARNING: python3 is not available. Skipping automatic native hook injection." >&2
   fi
 }
