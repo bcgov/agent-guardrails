@@ -54,6 +54,8 @@ The safety wrappers intercept commands and block specific actions based on repos
 | **gh** | `pr merge` | Forces PR merges to be performed manually by a human reviewer. |
 | **npm / npx** | `--legacy-peer-deps` | Prevents dirty dependency resolution bypasses. |
 | **npm / npx** | `NPM_CONFIG_LEGACY_PEER_DEPS` environment variable | Blocks env-level peer dependency bypasses. |
+| **kubectl** | All commands | Prevents automated cluster management and unauthorized access to environments. |
+| **oc** | All commands | Prevents automated OpenShift management and unauthorized access to environments. |
 
 ---
 
