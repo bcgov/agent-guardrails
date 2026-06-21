@@ -297,17 +297,36 @@ install_safety_functions() {
   chmod +x "$HOOKS_DIR/git-safety.sh"
   echo "Copied safety script to $HOOKS_DIR/git-safety.sh"
 
-  {
-    echo ""
-    echo "# >>> bcgov/agent-guardrails >>>"
-    echo "if [ -f \"\$HOME/.githooks/git-safety.sh\" ]; then"
-    echo "    . \"\$HOME/.githooks/git-safety.sh\""
-    echo "    export BASH_ENV=\"\${BASH_ENV:-\$HOME/.githooks/git-safety.sh}\""
-    echo "fi"
-    echo "# <<< bcgov/agent-guardrails <<<"
-  } >> "$bashrc"
+  local guardrails_block="
+# >>> bcgov/agent-guardrails >>>
+if [ -f \"\$HOME/.githooks/git-safety.sh\" ]; then
+    . \"\$HOME/.githooks/git-safety.sh\"
+    export BASH_ENV=\"\${BASH_ENV:-\$HOME/.githooks/git-safety.sh}\"
+    export ENV=\"\${ENV:-\$HOME/.githooks/git-safety.sh}\"
+fi
+# <<< bcgov/agent-guardrails <<<
+"
 
+  echo "$guardrails_block" >> "$bashrc"
   echo "Added safety function loader to ~/.bashrc"
+
+  if command -v zsh >/dev/null 2>&1 || [[ -f "$HOME/.zshrc" ]]; then
+    local zshrc="$HOME/.zshrc"
+    local zshenv="$HOME/.zshenv"
+    
+    if [[ -f "$zshrc" ]]; then
+      cp "$zshrc" "$zshrc.bak.$timestamp"
+      echo "$guardrails_block" >> "$zshrc"
+      echo "Added safety function loader to ~/.zshrc"
+    fi
+    
+    # .zshenv is critical for non-interactive zsh shells
+    if [[ -f "$zshenv" ]]; then
+      cp "$zshenv" "$zshenv.bak.$timestamp"
+    fi
+    echo "$guardrails_block" >> "$zshenv"
+    echo "Added safety function loader to ~/.zshenv"
+  fi
 }
 
 install_gitleaks
