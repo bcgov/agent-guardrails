@@ -4,21 +4,23 @@
 # while remaining completely transparent and bypassable for human developers.
 
 _is_ai_agent() {
-    # 1. Non-interactive shells are almost certainly agents/scripts
-    if [[ $- != *i* ]]; then
-        return 0
-    fi
-
-    # 2. Dumb terminals used by execution runners
-    if [[ "${TERM:-}" == "dumb" ]]; then
-        return 0
-    fi
-
-    # 3. Explicit environment markers injected by agent frameworks
+    # 1. Explicit environment markers injected by agent frameworks
     if [[ -n "${ANTIGRAVITY_AGENT:-}" \
           || -n "${AIDER_YT_VIDEO:-}" \
           || -n "${CLINE_API_KEY:-}" \
           || -n "${RM_CLINE:-}" ]]; then
+        return 0
+    fi
+
+    # 2. Interactive shells are definitely humans
+    if [[ $- == *i* ]]; then
+        return 1
+    fi
+
+    # 3. For non-interactive contexts (like scripts):
+    # If the terminal is dumb or stdout is not a terminal (piped/captured by agent tool execution),
+    # it is an agent/automation context.
+    if [[ "${TERM:-}" == "dumb" ]] || ! [[ -t 1 ]]; then
         return 0
     fi
 
