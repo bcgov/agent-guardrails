@@ -42,6 +42,7 @@ The safety wrappers intercept commands and block specific actions based on repos
 
 | Tool | Blocked Action / Argument | Reason for Policy |
 | :--- | :--- | :--- |
+| **oc / kubectl** | All commands | Prevents automated cluster management and unauthorized access to environments. |
 | **git** | `commit --no-verify`, `commit -n` | Prevents agents from bypassing commit hooks. |
 | **git** | `config` subcommand | Prevents modifications to global configurations. |
 | **git** | `tag` subcommand, `push --tags` | Restricts automated release/tag creation. |
@@ -54,7 +55,6 @@ The safety wrappers intercept commands and block specific actions based on repos
 | **gh** | `pr merge` | Forces PR merges to be performed manually by a human reviewer. |
 | **npm / npx** | `--legacy-peer-deps` | Prevents dirty dependency resolution bypasses. |
 | **npm / npx** | `NPM_CONFIG_LEGACY_PEER_DEPS` environment variable | Blocks env-level peer dependency bypasses. |
-| **oc / kubectl** | All commands | Prevents automated cluster management and unauthorized access to environments. |
 
 ---
 
