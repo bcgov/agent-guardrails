@@ -3,46 +3,90 @@ import sys
 import json
 import re
 
+import shlex
+
 def is_blocked(cmd_string):
     """
     Evaluates a command string against agent-guardrails policies.
     Returns (True, reason) if blocked, or (False, "") if allowed.
     """
-    # Split the command cleanly, respecting quotes would be ideal, but for basic
-    # guardrails, simple string/regex matching on the raw command is often safer
-    # and catches bypasses like `git  commit   --no-verify`.
-    cmd_lower = cmd_string.lower()
-
+    try:
+        tokens = shlex.split(cmd_string)
+    except ValueError:
+        # Malformed quotes, fallback to simple string matching
+        tokens = cmd_string.split()
+    
+    if not tokens:
+        return False, ""
+    
+    cmd = tokens[0].lower()
+    
     # 1. oc / kubectl
-    if re.search(r'\b(oc|kubectl)\b', cmd_lower):
+    if cmd in ("oc", "kubectl"):
         return True, "Access to Kubernetes/OpenShift clusters is restricted for autonomous agents."
 
     # 2. git operations
-    if re.search(r'\bgit\b', cmd_lower):
-        if re.search(r'\bcommit\b', cmd_lower) and re.search(r'(--no-verify|-n\b)', cmd_lower):
-            return True, "AI Agents are STRICTLY FORBIDDEN from bypassing Git hooks (--no-verify)."
-        if re.search(r'\bconfig\b', cmd_lower):
-            return True, "Modifying Git configuration is forbidden for AI agents."
-        if re.search(r'\btag\b', cmd_lower) or re.search(r'\bpush\b.*(--tags|-f\b|--force\b)', cmd_lower):
-            return True, "AI Agents cannot manage tags or force push."
-        if re.search(r'\brebase\b.*(-i\b|--interactive|squash|fixup|--autosquash)', cmd_lower) or \
-           re.search(r'\bmerge\b.*(--squash|squash)', cmd_lower):
-            return True, "Squashing commits and interactive rebasing are forbidden."
+    if cmd == "git":
+        # Find the subcommand (first token that doesn't start with '-')
+        subcmd = None
+        subcmd_idx = -1
+        for i, t in enumerate(tokens[1:]):
+            if not t.startswith('-'):
+                subcmd = t.lower()
+                subcmd_idx = i + 1
+                break
+                
+        if subcmd:
+            if subcmd == "commit":
+                # Check for --no-verify or combined -n (e.g., -an, -nm)
+                for t in tokens[subcmd_idx+1:]:
+                    if t == "--no-verify" or (t.startswith('-') and not t.startswith('--') and 'n' in t):
+                        return True, "AI Agents are STRICTLY FORBIDDEN from bypassing Git hooks (--no-verify)."
+            
+            elif subcmd == "config":
+                return True, "Modifying Git configuration is forbidden for AI agents."
+                
+            elif subcmd == "tag":
+                return True, "AI Agents cannot manage tags or force push."
+                
+            elif subcmd == "push":
+                for t in tokens[subcmd_idx+1:]:
+                    if t in ("--tags", "-f", "--force"):
+                        return True, "AI Agents cannot manage tags or force push."
+                        
+            elif subcmd in ("rebase", "merge"):
+                for t in tokens[subcmd_idx+1:]:
+                    if t in ("-i", "--interactive", "squash", "fixup", "--autosquash", "--squash"):
+                        return True, "Squashing commits and interactive rebasing are forbidden."
 
     # 3. gh operations
-    if re.search(r'\bgh\b', cmd_lower):
-        if re.search(r'\brelease\b', cmd_lower):
+    if cmd == "gh":
+        # Find subcommand
+        subcmd = None
+        subcmd_idx = -1
+        for i, t in enumerate(tokens[1:]):
+            if not t.startswith('-'):
+                subcmd = t.lower()
+                subcmd_idx = i + 1
+                break
+        
+        if subcmd == "release":
             return True, "Managing GitHub Releases is forbidden."
-        if re.search(r'\brepo\s+delete\b', cmd_lower):
-            return True, "Repository deletion is strictly forbidden."
-        if re.search(r'\bsecret\b', cmd_lower):
+        elif subcmd == "secret":
             return True, "Managing repository secrets is forbidden."
-        if re.search(r'\b(issue|pr)\s+(comment|review|merge)\b', cmd_lower):
-            return True, "Impersonating humans in PRs/Issues or merging PRs is forbidden."
+            
+        # Check compound commands like 'repo delete' or 'pr merge'
+        if subcmd_idx != -1 and subcmd_idx + 1 < len(tokens):
+            subsubcmd = tokens[subcmd_idx+1].lower()
+            if subcmd == "repo" and subsubcmd == "delete":
+                return True, "Repository deletion is strictly forbidden."
+            if subcmd in ("issue", "pr") and subsubcmd in ("comment", "review", "merge"):
+                return True, "Impersonating humans in PRs/Issues or merging PRs is forbidden."
 
     # 4. npm / npx operations
-    if re.search(r'\b(npm|npx)\b', cmd_lower) and '--legacy-peer-deps' in cmd_lower:
-        return True, "Bypassing peer dependencies with --legacy-peer-deps is forbidden. Resolve conflicts cleanly."
+    if cmd in ("npm", "npx"):
+        if "--legacy-peer-deps" in tokens:
+            return True, "Bypassing peer dependencies with --legacy-peer-deps is forbidden. Resolve conflicts cleanly."
 
     return False, ""
 

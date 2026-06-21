@@ -192,15 +192,21 @@ install_agent_hooks() {
   fi
   
   mkdir -p "$HOOKS_DIR"
+  if [[ -f "$hook_dest" ]]; then
+    local timestamp
+    timestamp=$(date +%s)
+    mv "$hook_dest" "$hook_dest.bak.$timestamp"
+    echo "NOTE: Existing agent hook validator backed up to $hook_dest.bak.$timestamp" >&2
+  fi
   cp "$hook_src" "$hook_dest"
   chmod +x "$hook_dest"
   echo "Copied agent hook validator to $hook_dest"
 
   if command -v python3 >/dev/null 2>&1; then
-    python3 -c '
+    HOOK_DEST="$hook_dest" python3 -c '
 import os, json
 
-hook_dest = os.path.expanduser("~/.githooks/agent-hook-validator.py")
+hook_dest = os.environ.get("HOOK_DEST", os.path.expanduser("~/.githooks/agent-hook-validator.py"))
 
 # 1. Claude Code
 claude_settings_path = os.path.expanduser("~/.claude/settings.json")
