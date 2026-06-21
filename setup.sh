@@ -166,10 +166,12 @@ with open(path) as f:
 for pat in [
     r"# >>> bcgov/agent-guardrails >>>.*?# <<< bcgov/agent-guardrails <<<\n*",
     r"# >>> bcgov/copilot-instructions safety block >>>.*?# <<< bcgov/copilot-instructions safety block <<<\n*",
+    r"# >>> bcgov/agent-instructions safety block >>>.*?# <<< bcgov/agent-instructions safety block <<<\n*",
     r"# >>> dotfiles guardrails >>>.*?# <<< dotfiles guardrails <<<\n*",
     r"# Git Safety.*?\nexport -f git\n*",
     r"# GitHub CLI Safety.*?\nexport -f gh\n*",
     r"# AI POLICY \(bcgov/copilot-instructions\).*?\nexport -f (gh|npx)\n*",
+    r"# AI POLICY \(bcgov/agent-instructions\).*?\nexport -f (gh|npx)\n*",
 ]:
     content = re.sub(pat, "", content, flags=re.DOTALL)
 
@@ -338,7 +340,7 @@ for cmd in git gh npm npx kubectl oc; do
   wrapper="$BIN_DIR/$cmd"
   if [[ -f "$wrapper" ]] \
     && head -n 5 "$wrapper" | grep -q '^#!/bin/bash' \
-    && grep -qE 'bcgov/(copilot-instructions|agent-guardrails)' "$wrapper" \
+    && grep -qE 'bcgov/(agent-instructions|copilot-instructions|agent-guardrails)' "$wrapper" \
     && grep -q 'safety wrapper' "$wrapper"; then
     echo "Removing wrapper script: $wrapper"
     rm -f "$wrapper"
