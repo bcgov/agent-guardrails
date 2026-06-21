@@ -3,6 +3,30 @@
 # Clean, non-exported shell safety functions that protect against AI mistakes
 # while remaining completely transparent and bypassable for human developers.
 
+_is_ai_agent() {
+    # 1. Explicit environment markers injected by agent frameworks
+    if [[ -n "${ANTIGRAVITY_AGENT:-}" \
+          || -n "${AIDER_YT_VIDEO:-}" \
+          || -n "${CLINE_API_KEY:-}" \
+          || -n "${RM_CLINE:-}" ]]; then
+        return 0
+    fi
+
+    # 2. Interactive shells are definitely humans
+    if [[ $- == *i* ]]; then
+        return 1
+    fi
+
+    # 3. For non-interactive contexts (like scripts):
+    # If the terminal is dumb or stdout is not a terminal (piped/captured by agent tool execution),
+    # it is an agent/automation context.
+    if [[ "${TERM:-}" == "dumb" ]] || ! [[ -t 1 ]]; then
+        return 0
+    fi
+
+    return 1
+}
+
 git() {
     # Skip during tab completion
     if [[ -z "${COMP_LINE:-}" && -z "${COMP_POINT:-}" ]]; then
@@ -241,3 +265,26 @@ npx() {
 
     command npx "$@"
 }
+
+kubectl() {
+    if _is_ai_agent; then
+        echo "BLOCKED: AI Agents are STRICTLY FORBIDDEN from running Kubernetes (kubectl) commands." >&2
+        echo "         Access to Kubernetes clusters is restricted." >&2
+        echo "         HALT immediately and request manual action from the USER." >&2
+        return 1
+    fi
+
+    command kubectl "$@"
+}
+
+oc() {
+    if _is_ai_agent; then
+        echo "BLOCKED: AI Agents are STRICTLY FORBIDDEN from running OpenShift (oc) commands." >&2
+        echo "         Access to OpenShift is restricted." >&2
+        echo "         HALT immediately and request manual action from the USER." >&2
+        return 1
+    fi
+
+    command oc "$@"
+}
+

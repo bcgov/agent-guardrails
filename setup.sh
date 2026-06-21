@@ -242,7 +242,7 @@ fi
 echo ""
 echo "✅ Guardrails setup complete!"
 echo "Git hooks:        Secrets blocked (Gitleaks) + main/master push blocked"
-echo "Safety functions: Installed to ~/.bashrc (git, gh, npm, npx)"
+echo "Safety functions: Installed to ~/.bashrc (git, gh, npm, npx, kubectl, oc)"
 echo "                  Clean, non-exported shell functions (no export -f)"
 echo "Git config:       All git config commands blocked (use 'command git config' to bypass)"
 echo ""

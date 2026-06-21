@@ -1,6 +1,14 @@
 # Agent Guardrails
 
-An enforcement and safety layer for AI-assisted development at the BC Government. This repository installs local git hooks and shell safety wrappers to prevent common AI accidents, secure repositories, and maintain compliant development workflows.
+AI-assisted development accelerates velocity, but autonomous agents require guardrails to protect shared environments and maintain compliance.
+
+This repository establishes a client-side safety net that intercepts standard command paths to enforce a **human-in-the-loop** workflow:
+
+*   **Infrastructure Safeguards**: Intercepts standard `oc` and `kubectl` execution to prevent AI agents from accidentally modifying or querying live Kubernetes/OpenShift environments.
+*   **Enforced Repository Standards**: Intercepts shortcut flags (like `commit --no-verify` or `--legacy-peer-deps`) to ensure AI-generated code passes the exact same linting, testing, and dependency checks as human code.
+*   **Accountability & Attribution**: Intercepts automated Pull Request merges, secret management, and release publishing via the GitHub CLI (`gh`), preserving human review as the final gate.
+
+This is a safety belt, not a sandbox. It won't stop a malicious agent, but it prevents well-intentioned tools from making automated mistakes.
 
 ---
 
@@ -42,6 +50,7 @@ The safety wrappers intercept commands and block specific actions based on repos
 
 | Tool | Blocked Action / Argument | Reason for Policy |
 | :--- | :--- | :--- |
+| **oc / kubectl** | All commands | Prevents automated cluster management and unauthorized access to environments. |
 | **git** | `commit --no-verify`, `commit -n` | Prevents agents from bypassing commit hooks. |
 | **git** | `config` subcommand | Prevents modifications to global configurations. |
 | **git** | `tag` subcommand, `push --tags` | Restricts automated release/tag creation. |
@@ -67,6 +76,14 @@ export BASH_ENV="$HOME/.githooks/git-safety.sh"
 ```
 
 When a non-interactive Bash sub-shell is initialized, Bash automatically checks `BASH_ENV` and sources the file it points to before executing any script or command. This ensures safety wrappers remain active during background agent runs.
+
+### AI Agent Detection (Interactive vs. Non-Interactive)
+Certain commands (such as `oc` and `kubectl`) are unconditionally blocked for AI agents, but are permitted for human developers in normal interactive shell sessions.
+
+To distinguish between humans and AI agents without requiring manual bypass prefixes for every command, the wrapper script uses an `_is_ai_agent()` check. It identifies AI environments based on:
+1. **Shell Interactivity**: Whether the shell is running non-interactively (typical for background AI tools).
+2. **Terminal Type**: Whether the `TERM` variable is set to `dumb` (a common default for automated agent execution environments).
+3. **Agent Markers**: The presence of environment variables injected by agent platforms (e.g., `ANTIGRAVITY_AGENT`, `AIDER_YT_VIDEO`, `CLINE_API_KEY`, `RM_CLINE`, etc.).
 
 ### Security Model and Limitations
 These guardrails serve as a safety net and a gentle nudge for helpful, well-intentioned AI agents. They do not constitute a security boundary or a bulletproof cage against malicious code. Bad-faith agents can easily override shell functions or delete local hooks. Real security must be enforced at the server/repository level (such as branch protection rules and CI pipelines).
