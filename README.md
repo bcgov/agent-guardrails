@@ -68,6 +68,14 @@ The safety wrappers intercept commands and block specific actions based on repos
 
 ## How It Works
 
+### The Hybrid Architecture: Native Hooks + Shell Fallbacks
+Because there are many different types of AI agents, this repository uses a **hybrid architecture** (defense-in-depth) to enforce guardrails:
+
+1. **Agent-Native Hooks (Application Layer)**: Modern IDEs like Cursor and Claude Code provide native pre-execution hooks (e.g., `.cursor/hooks.json` or `.claude/settings.json`). The installer automatically injects a lightning-fast, Python-based validator script into these configurations. This ensures dangerous commands are intercepted natively *before* a sub-shell is even spawned.
+2. **Shell Wrappers (Shell Layer)**: CLI agents (like Aider, Cline, or Antigravity) do not have native hook frameworks. They execute raw commands in background terminal sessions. To catch these, the installer configures `BASH_ENV` to load safety wrapper functions (e.g., `git()` and `oc()`) in all bash sub-shells. 
+
+This two-tier approach guarantees un-bypassable protection for supported IDEs, while maintaining a universal safety net for all other terminal-native tools and human errors.
+
 ### Non-Interactive Shell Loading (AI Agent Coverage)
 Many AI coding agents execute commands within non-interactive sub-shells. Because Bash does not load `~/.bashrc` for non-interactive shells, the installer exports the `BASH_ENV` environment variable:
 

@@ -182,6 +182,98 @@ with open(path, "w") as f:
   fi
 }
 
+install_agent_hooks() {
+  local hook_src="$SCRIPT_DIR/scripts/agent-hook-validator.py"
+  local hook_dest="$HOOKS_DIR/agent-hook-validator.py"
+  
+  if [[ ! -f "$hook_src" ]]; then
+    echo "WARNING: Could not find agent hook validator at $hook_src" >&2
+    return 0
+  fi
+  
+  mkdir -p "$HOOKS_DIR"
+  if [[ -f "$hook_dest" ]]; then
+    local timestamp
+    timestamp=$(date +%s)
+    mv "$hook_dest" "$hook_dest.bak.$timestamp"
+    echo "NOTE: Existing agent hook validator backed up to $hook_dest.bak.$timestamp" >&2
+  fi
+  cp "$hook_src" "$hook_dest"
+  chmod +x "$hook_dest"
+  echo "Copied agent hook validator to $hook_dest"
+
+  if command -v python3 >/dev/null 2>&1; then
+    HOOK_DEST="$hook_dest" python3 -c '
+import os, json
+
+hook_dest = os.environ.get("HOOK_DEST", os.path.expanduser("~/.githooks/agent-hook-validator.py"))
+
+# 1. Claude Code
+claude_settings_path = os.path.expanduser("~/.claude/settings.json")
+if os.path.isdir(os.path.expanduser("~/.claude")):
+    try:
+        data = {}
+        if os.path.exists(claude_settings_path):
+            with open(claude_settings_path, "r") as f:
+                data = json.load(f)
+        
+        if "hooks" not in data:
+            data["hooks"] = {}
+        if "PreToolUse" not in data["hooks"]:
+            data["hooks"]["PreToolUse"] = []
+            
+        hook_entry = {
+            "matcher": "Bash",
+            "hooks": [{"type": "command", "command": hook_dest}]
+        }
+        
+        filtered = []
+        for h in data["hooks"]["PreToolUse"]:
+            if not (h.get("matcher") == "Bash" and any(hh.get("command") == hook_dest for hh in h.get("hooks", []))):
+                filtered.append(h)
+                
+        filtered.append(hook_entry)
+        data["hooks"]["PreToolUse"] = filtered
+        
+        with open(claude_settings_path, "w") as f:
+            json.dump(data, f, indent=2)
+        print("Injected Claude Code hook into ~/.claude/settings.json")
+    except Exception as e:
+        print(f"Failed to inject Claude Code hook: {e}")
+
+# 2. Cursor
+cursor_hooks_path = os.path.expanduser("~/.cursor/hooks.json")
+if os.path.isdir(os.path.expanduser("~/.cursor")):
+    try:
+        data = {}
+        if os.path.exists(cursor_hooks_path):
+            with open(cursor_hooks_path, "r") as f:
+                data = json.load(f)
+        else:
+            data["version"] = 1
+            
+        if "hooks" not in data:
+            data["hooks"] = {}
+        if "beforeShellExecution" not in data["hooks"]:
+            data["hooks"]["beforeShellExecution"] = []
+            
+        hook_entry = {"command": hook_dest}
+        
+        filtered = [h for h in data["hooks"]["beforeShellExecution"] if h.get("command") != hook_dest]
+        filtered.append(hook_entry)
+        data["hooks"]["beforeShellExecution"] = filtered
+        
+        with open(cursor_hooks_path, "w") as f:
+            json.dump(data, f, indent=2)
+        print("Injected Cursor hook into ~/.cursor/hooks.json")
+    except Exception as e:
+        print(f"Failed to inject Cursor hook: {e}")
+'
+  else
+    echo "WARNING: python3 is not available. Skipping automatic native hook injection." >&2
+  fi
+}
+
 install_safety_functions() {
   local bashrc="$HOME/.bashrc"
   local git_safety="$SCRIPT_DIR/scripts/git-safety.sh"
@@ -205,17 +297,36 @@ install_safety_functions() {
   chmod +x "$HOOKS_DIR/git-safety.sh"
   echo "Copied safety script to $HOOKS_DIR/git-safety.sh"
 
-  {
-    echo ""
-    echo "# >>> bcgov/agent-guardrails >>>"
-    echo "if [ -f \"\$HOME/.githooks/git-safety.sh\" ]; then"
-    echo "    . \"\$HOME/.githooks/git-safety.sh\""
-    echo "    export BASH_ENV=\"\${BASH_ENV:-\$HOME/.githooks/git-safety.sh}\""
-    echo "fi"
-    echo "# <<< bcgov/agent-guardrails <<<"
-  } >> "$bashrc"
+  local guardrails_block="
+# >>> bcgov/agent-guardrails >>>
+if [ -f \"\$HOME/.githooks/git-safety.sh\" ]; then
+    . \"\$HOME/.githooks/git-safety.sh\"
+    export BASH_ENV=\"\${BASH_ENV:-\$HOME/.githooks/git-safety.sh}\"
+    export ENV=\"\${ENV:-\$HOME/.githooks/git-safety.sh}\"
+fi
+# <<< bcgov/agent-guardrails <<<
+"
 
+  echo "$guardrails_block" >> "$bashrc"
   echo "Added safety function loader to ~/.bashrc"
+
+  if command -v zsh >/dev/null 2>&1 || [[ -f "$HOME/.zshrc" ]]; then
+    local zshrc="$HOME/.zshrc"
+    local zshenv="$HOME/.zshenv"
+    
+    if [[ -f "$zshrc" ]]; then
+      cp "$zshrc" "$zshrc.bak.$timestamp"
+      echo "$guardrails_block" >> "$zshrc"
+      echo "Added safety function loader to ~/.zshrc"
+    fi
+    
+    # .zshenv is critical for non-interactive zsh shells
+    if [[ -f "$zshenv" ]]; then
+      cp "$zshenv" "$zshenv.bak.$timestamp"
+    fi
+    echo "$guardrails_block" >> "$zshenv"
+    echo "Added safety function loader to ~/.zshenv"
+  fi
 }
 
 install_gitleaks
@@ -239,8 +350,11 @@ if ! install_safety_functions; then
   exit 1
 fi
 
+install_agent_hooks
+
 echo ""
 echo "✅ Guardrails setup complete!"
+echo "Agent hooks:      Native integration for Claude Code & Cursor"
 echo "Git hooks:        Secrets blocked (Gitleaks) + main/master push blocked"
 echo "Safety functions: Installed to ~/.bashrc (git, gh, npm, npx, kubectl, oc)"
 echo "                  Clean, non-exported shell functions (no export -f)"
