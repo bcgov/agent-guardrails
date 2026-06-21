@@ -1,11 +1,5 @@
 # Agent Guardrails
 
-An enforcement and safety layer for AI-assisted development at the BC Government. This repository installs local git hooks and shell safety wrappers to prevent common AI accidents, secure repositories, and maintain compliant development workflows.
-
----
-
-## Safe Adoption: Enforcing Human-in-the-Loop AI
-
 AI-assisted development is a massive productivity multiplier, but introducing autonomous agents into government codebases requires guardrails. Without structure, the fear of accidental infrastructure damage or compliance slip-ups can lead organizations to ban AI tools altogether.
 
 This repository establishes a client-side safety net that intercepts standard command paths to enforce a **human-in-the-loop** workflow:
