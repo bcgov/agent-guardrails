@@ -124,6 +124,9 @@ git() {
             done
         elif [[ "$sub" == "commit" ]]; then
             for arg in "$@"; do
+                if [[ "$arg" == "--" ]]; then
+                    break
+                fi
                 if [[ "$arg" == "--amend" ]]; then
                     echo "BLOCKED: AI Agents are STRICTLY FORBIDDEN from amending commits." >&2
                     echo "         Amending commits rewrites git history and violates repository rules." >&2
@@ -143,13 +146,16 @@ git() {
         # Block tag pushes and force pushes in all forms
         if [[ "$sub" == "push" ]]; then
             for arg in "$@"; do
+                if [[ "$arg" == "--" ]]; then
+                    break
+                fi
                 if echo "$arg" | grep -qE "^(--tags|--follow-tags|refs/tags/|.*:refs/tags/)"; then
                     echo "BLOCKED: AI Agents are STRICTLY FORBIDDEN from pushing tags." >&2
                     echo "         AI is not allowed to manage git tags or cut releases." >&2
                     echo "         HALT immediately and request manual action from the USER." >&2
                     return 1
                 fi
-                if [[ "$arg" == "--force" || "$arg" == "-f" || "$arg" == "--force-with-lease" ]]; then
+                if [[ "$arg" == "--force" || "$arg" == "-f" || "$arg" == "--force-with-lease" || "$arg" =~ ^--force-with-lease= ]]; then
                     echo "BLOCKED: AI Agents are STRICTLY FORBIDDEN from force-pushing." >&2
                     echo "         Force-pushing rewrites history on remote branches." >&2
                     echo "         HALT immediately." >&2
