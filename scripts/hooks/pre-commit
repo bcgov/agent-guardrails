@@ -16,8 +16,8 @@ gitleaks protect --staged --redact --no-banner
 # Use null-delimited find to handle spaces/newlines in filenames
 git diff --cached --name-only -z | while IFS= read -r -d '' file; do
   if [[ "$file" =~ (package.json|Containerfile|Dockerfile|compose.yml|docker-compose.yml|pyproject.toml|\.github/workflows/.*\.ya?ml)$ ]]; then
-    REGRESSION=$(git diff --cached "$file" | grep -E "^\-" | grep -oE "[0-9]+(\.[0-9]+)+" | head -n 1 || true)
-    NEW_VERSION=$(git diff --cached "$file" | grep -E "^\+" | grep -oE "[0-9]+(\.[0-9]+)+" | head -n 1 || true)
+    REGRESSION=$(git diff --cached "$file" | grep "^-" | grep -oE "[0-9]+(\.[0-9]+)+" | head -n 1 || true)
+    NEW_VERSION=$(git diff --cached "$file" | grep "^+" | grep -oE "[0-9]+(\.[0-9]+)+" | head -n 1 || true)
 
     if [[ -n "$REGRESSION" ]] && [[ -n "$NEW_VERSION" ]]; then
       LOWER_VERSION=$(printf "%s\n%s" "$REGRESSION" "$NEW_VERSION" | sort -V | head -n 1)
