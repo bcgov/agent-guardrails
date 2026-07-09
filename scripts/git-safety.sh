@@ -103,23 +103,30 @@ git() {
             local has_list_flag=false
             local has_write_flag=false
             local non_option_count=0
+            local in_end_of_options=false
             local idx=$((i + 1))
             while [[ $idx -lt ${#args[@]} ]]; do
                 local arg="${args[$idx]}"
-                case "$arg" in
-                    -d|--delete|-v|--verify|-a|--annotate|-s|--sign|-u*|--local-user*|-f|--force|-m*|--message*|-F*|--file*)
-                        has_write_flag=true
-                        ;;
-                    -l|--list|-n*|--contains*|--no-contains*|--points-at*|--merged*|--no-merged*|--sort*|--format*|--color*|--column*)
-                        has_list_flag=true
-                        ;;
-                    -*)
-                        # Other options
-                        ;;
-                    *)
-                        ((non_option_count++))
-                        ;;
-                esac
+                if [[ "$in_end_of_options" == "true" ]]; then
+                    ((non_option_count++))
+                elif [[ "$arg" == "--" ]]; then
+                    in_end_of_options=true
+                else
+                    case "$arg" in
+                        -d|--delete|-a|--annotate|-s|--sign|-u*|--local-user*|-f|--force|-m*|--message*|-F*|--file*)
+                            has_write_flag=true
+                            ;;
+                        -v|--verify|-l|--list|-n*|--contains*|--no-contains*|--points-at*|--merged*|--no-merged*|--sort*|--format*|--color*|--column*)
+                            has_list_flag=true
+                            ;;
+                        -*)
+                            # Other options
+                            ;;
+                        *)
+                            ((non_option_count++))
+                            ;;
+                    esac
+                fi
                 ((idx++))
             done
 
