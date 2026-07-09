@@ -100,10 +100,50 @@ git() {
 
         # Block tagging
         if [[ "$sub" == "tag" ]]; then
-            echo "BLOCKED: AI Agents are STRICTLY FORBIDDEN from tagging commits." >&2
-            echo "         AI is not allowed to manage git tags or cut releases." >&2
-            echo "         HALT immediately and request manual action from the USER." >&2
-            return 1
+            local has_list_flag=false
+            local has_write_flag=false
+            local non_option_count=0
+            local in_end_of_options=false
+            local idx=$((i + 1))
+            while [[ $idx -lt ${#args[@]} ]]; do
+                local arg="${args[$idx]}"
+                if [[ "$in_end_of_options" == "true" ]]; then
+                    ((non_option_count++))
+                elif [[ "$arg" == "--" ]]; then
+                    in_end_of_options=true
+                else
+                    case "$arg" in
+                        -d|--delete|-a|--annotate|-s|--sign|-u*|--local-user*|-f|--force|-m*|--message*|-F*|--file*)
+                            has_write_flag=true
+                            ;;
+                        -v|--verify|-l|--list|-n*|--contains*|--no-contains*|--points-at*|--merged*|--no-merged*|--sort*|--format*|--color*|--column*)
+                            has_list_flag=true
+                            ;;
+                        -*)
+                            # Other options
+                            ;;
+                        *)
+                            ((non_option_count++))
+                            ;;
+                    esac
+                fi
+                ((idx++))
+            done
+
+            local is_write=false
+            if [[ $non_option_count -gt 0 && "$has_list_flag" != "true" ]]; then
+                is_write=true
+            fi
+            if [[ "$has_write_flag" == "true" ]]; then
+                is_write=true
+            fi
+
+            if [[ "$is_write" == "true" ]]; then
+                echo "BLOCKED: AI Agents are STRICTLY FORBIDDEN from tagging commits." >&2
+                echo "         AI is not allowed to manage git tags or cut releases." >&2
+                echo "         HALT immediately and request manual action from the USER." >&2
+                return 1
+            fi
         fi
 
         # Block destructive squashing / interactive rebase / amending
