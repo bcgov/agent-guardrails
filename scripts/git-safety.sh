@@ -28,6 +28,11 @@ _is_ai_agent() {
 }
 
 git() {
+    if ! _is_ai_agent; then
+        command git "$@"
+        return $?
+    fi
+
     # Skip during tab completion
     if [[ -z "${COMP_LINE:-}" && -z "${COMP_POINT:-}" ]]; then
         # Identify the subcommand (skip global options like -C, -c, etc.)
@@ -209,6 +214,11 @@ git() {
 }
 
 gh() {
+    if ! _is_ai_agent; then
+        command gh "$@"
+        return $?
+    fi
+
     # Skip during tab completion
     if [[ -z "${COMP_LINE:-}" && -z "${COMP_POINT:-}" ]]; then
         # Identify command and subcommand (skip global options like -R, --repo, etc.)
@@ -278,6 +288,11 @@ gh() {
 }
 
 npm() {
+    if ! _is_ai_agent; then
+        command npm "$@"
+        return $?
+    fi
+
     # Skip during tab completion
     if [[ -z "${COMP_LINE:-}" && -z "${COMP_POINT:-}" ]]; then
         # Block environment-based bypass vector
@@ -303,6 +318,11 @@ npm() {
 }
 
 npx() {
+    if ! _is_ai_agent; then
+        command npx "$@"
+        return $?
+    fi
+
     # Skip during tab completion
     if [[ -z "${COMP_LINE:-}" && -z "${COMP_POINT:-}" ]]; then
         # Block environment-based bypass vector
