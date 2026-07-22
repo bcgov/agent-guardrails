@@ -1,4 +1,9 @@
-# Agent Guardrails
+# Agent Guardrails (DEPRECATED & RETIRED)
+
+> [!WARNING]
+> **THIS REPOSITORY IS DEPRECATED & SCHEDULED FOR ARCHIVAL.**
+> Work-sharable security scripts, Gitleaks pre-commit hooks, and template guardrails have been consolidated into **[quickstart-openshift](https://github.com/bcgov/quickstart-openshift)**. Personal developer workstation wrappers live in `dotfiles`.
+> This repository is locked for maintenance and will be formally archived.
 
 AI-assisted development accelerates velocity, but autonomous agents require guardrails to protect shared environments and maintain compliance.
 
