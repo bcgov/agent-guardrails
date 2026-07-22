@@ -86,7 +86,10 @@ export BASH_ENV="$HOME/.githooks/git-safety.sh"
 When a non-interactive Bash sub-shell is initialized, Bash automatically checks `BASH_ENV` and sources the file it points to before executing any script or command. This ensures safety wrappers remain active during background agent runs.
 
 ### AI Agent Detection (Interactive vs. Non-Interactive)
-All safety wrapper commands (`git`, `gh`, `npm`, `npx`, `oc`, `kubectl`) use an `_is_ai_agent()` check. Human developers running commands in normal interactive shells are untouched.
+Safety wrappers for repository operations (`git`, `gh`, `oc`, `kubectl`) use an `_is_ai_agent()` check so human developers running commands in normal interactive shells are untouched.
+
+> [!IMPORTANT]
+> Dependency safety wrappers (`npm` and `npx`) enforce the `--legacy-peer-deps` block unconditionally for **all** execution environments (both human and AI agent) to prevent peer dependency resolution bypasses.
 
 The script identifies AI environments based on:
 1. **Agent Markers**: The presence of environment variables injected by agent platforms (e.g., `ANTIGRAVITY_AGENT`, `AIDER_YT_VIDEO`, `CLINE_API_KEY`, `RM_CLINE`, etc.).

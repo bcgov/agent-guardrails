@@ -288,27 +288,22 @@ gh() {
 }
 
 npm() {
-    if ! _is_ai_agent; then
-        command npm "$@"
-        return $?
-    fi
-
     # Skip during tab completion
     if [[ -z "${COMP_LINE:-}" && -z "${COMP_POINT:-}" ]]; then
         # Block environment-based bypass vector
         if [[ -n "${NPM_CONFIG_LEGACY_PEER_DEPS:-}" ]]; then
-            echo "BLOCKED: AI Agents are STRICTLY FORBIDDEN from bypassing peer dependencies." >&2
+            echo "BLOCKED: Bypassing peer dependencies is STRICTLY FORBIDDEN by repository policy." >&2
             echo "         NPM_CONFIG_LEGACY_PEER_DEPS environment variable must not be set." >&2
-            echo "         HALT immediately and resolve peer dependency conflicts cleanly." >&2
+            echo "         Resolve peer dependency conflicts cleanly." >&2
             return 1
         fi
 
         # Block flag-based bypass
         for arg in "$@"; do
             if [[ "$arg" == "--legacy-peer-deps" || "$arg" =~ ^--legacy-peer-deps= ]]; then
-                echo "BLOCKED: AI Agents are STRICTLY FORBIDDEN from bypassing peer dependencies." >&2
+                echo "BLOCKED: Bypassing peer dependencies is STRICTLY FORBIDDEN by repository policy." >&2
                 echo "         npm with --legacy-peer-deps is strictly forbidden." >&2
-                echo "         HALT immediately and resolve peer dependency conflicts cleanly." >&2
+                echo "         Resolve peer dependency conflicts cleanly." >&2
                 return 1
             fi
         done
@@ -318,27 +313,22 @@ npm() {
 }
 
 npx() {
-    if ! _is_ai_agent; then
-        command npx "$@"
-        return $?
-    fi
-
     # Skip during tab completion
     if [[ -z "${COMP_LINE:-}" && -z "${COMP_POINT:-}" ]]; then
         # Block environment-based bypass vector
         if [[ -n "${NPM_CONFIG_LEGACY_PEER_DEPS:-}" ]]; then
-            echo "BLOCKED: AI Agents are STRICTLY FORBIDDEN from bypassing peer dependencies." >&2
+            echo "BLOCKED: Bypassing peer dependencies is STRICTLY FORBIDDEN by repository policy." >&2
             echo "         NPM_CONFIG_LEGACY_PEER_DEPS environment variable must not be set." >&2
-            echo "         HALT immediately and resolve peer dependency conflicts cleanly." >&2
+            echo "         Resolve peer dependency conflicts cleanly." >&2
             return 1
         fi
 
         # Block flag-based bypass
         for arg in "$@"; do
             if [[ "$arg" == "--legacy-peer-deps" || "$arg" =~ ^--legacy-peer-deps= ]]; then
-                echo "BLOCKED: AI Agents are STRICTLY FORBIDDEN from bypassing peer dependencies." >&2
+                echo "BLOCKED: Bypassing peer dependencies is STRICTLY FORBIDDEN by repository policy." >&2
                 echo "         npx with --legacy-peer-deps is strictly forbidden." >&2
-                echo "         HALT immediately and resolve peer dependency conflicts cleanly." >&2
+                echo "         Resolve peer dependency conflicts cleanly." >&2
                 return 1
             fi
         done
