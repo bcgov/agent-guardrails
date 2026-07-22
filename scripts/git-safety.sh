@@ -4,27 +4,43 @@
 # while remaining completely transparent and bypassable for human developers.
 
 _is_ai_agent() {
-    # 1. Explicit environment markers injected by agent frameworks
+    # 1. Explicit environment markers injected by agent platforms & frameworks
     if [[ -n "${ANTIGRAVITY_AGENT:-}" \
+          || -n "${AGY_SESSION:-}" \
+          || -n "${CLAUDE_CODE:-}" \
+          || -n "${CLAUDE_ENTRYPOINT:-}" \
+          || -n "${CURSOR_BUILD:-}" \
           || -n "${AIDER_YT_VIDEO:-}" \
           || -n "${CLINE_API_KEY:-}" \
-          || -n "${RM_CLINE:-}" ]]; then
+          || -n "${RM_CLINE:-}" \
+          || -n "${ROO_CODE:-}" \
+          || -n "${GOOSE_PROVIDER:-}" \
+          || -n "${OPENHANDS_BUILD:-}" \
+          || -n "${CI:-}" \
+          || -n "${GITHUB_ACTIONS:-}" ]]; then
         return 0
     fi
 
-    # 2. Interactive shells are definitely humans
-    if [[ $- == *i* ]]; then
+    # 2. Inspect parent process ($PPID) to catch agents executing inside PTYs or subshells
+    local ppid_cmd=""
+    if [[ -r "/proc/$PPID/cmdline" ]]; then
+        ppid_cmd=$(tr '\0' ' ' < "/proc/$PPID/cmdline" 2>/dev/null || true)
+    fi
+    if [[ -z "$ppid_cmd" ]] && command -v ps &>/dev/null; then
+        ppid_cmd=$(ps -p "$PPID" -o comm= 2>/dev/null || true)
+    fi
+
+    if echo "$ppid_cmd" | grep -qE "(node|python|python3|ruby|aider|cline|claude|cursor|antigravity|code-server)"; then
+        return 0
+    fi
+
+    # 3. Interactive shells are humans unless flags indicate non-interactive execution
+    if [[ $- == *i* ]] && [[ "${TERM:-}" != "dumb" ]] && [[ -t 1 ]]; then
         return 1
     fi
 
-    # 3. For non-interactive contexts (like scripts):
-    # If the terminal is dumb or stdout is not a terminal (piped/captured by agent tool execution),
-    # it is an agent/automation context.
-    if [[ "${TERM:-}" == "dumb" ]] || ! [[ -t 1 ]]; then
-        return 0
-    fi
-
-    return 1
+    # Default to agent context for automated or piped execution
+    return 0
 }
 
 git() {
