@@ -91,7 +91,7 @@ Certain commands (such as `oc` and `kubectl`) are unconditionally blocked for AI
 To distinguish between humans and AI agents without requiring manual bypass prefixes for every command, the wrapper script uses an `_is_ai_agent()` check. It identifies AI environments based on:
 1. **Agent Markers**: The presence of environment variables injected by agent platforms (e.g., `ANTIGRAVITY_AGENT`, `AIDER_YT_VIDEO`, `CLINE_API_KEY`, `RM_CLINE`, etc.).
 2. **Shell Interactivity**: Whether the shell is running interactively.
-3. **Controlling Terminal**: Presence of a controlling TTY (`/dev/tty`), ensuring non-interactive scripts executed by humans in terminal sessions are permitted while sub-process automation without a TTY is blocked.
+3. **Controlling Terminal**: Ability to open a controlling TTY via `/dev/tty` (not merely the existence of the device node), ensuring non-interactive scripts executed by humans in terminal sessions are permitted while sub-process automation without a TTY is blocked.
 
 ### Security Model and Limitations
 These guardrails serve as a safety net and a gentle nudge for helpful, well-intentioned AI agents. They do not constitute a security boundary or a bulletproof cage against malicious code. Bad-faith agents can easily override shell functions or delete local hooks. Real security must be enforced at the server/repository level (such as branch protection rules and CI pipelines).

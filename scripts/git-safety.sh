@@ -18,9 +18,9 @@ _is_ai_agent() {
     fi
 
     # 3. Controlling TTY check for non-interactive contexts:
-    # Humans executing scripts from a terminal session still have a controlling tty (/dev/tty).
-    # Automated agent executions running in background sub-processes do not.
-    if [[ -c /dev/tty ]]; then
+    # Humans executing scripts from a terminal session still have an openable controlling tty (/dev/tty).
+    # Automated agent executions running in background sub-processes cannot open /dev/tty.
+    if [[ -c /dev/tty ]] && { true </dev/tty; } 2>/dev/null; then
         return 1
     fi
 
