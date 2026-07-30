@@ -17,14 +17,15 @@ _is_ai_agent() {
         return 1
     fi
 
-    # 3. For non-interactive contexts (like scripts):
-    # If the terminal is dumb or stdout is not a terminal (piped/captured by agent tool execution),
-    # it is an agent/automation context.
-    if [[ "${TERM:-}" == "dumb" ]] || ! [[ -t 1 ]]; then
-        return 0
+    # 3. Controlling TTY check for non-interactive contexts:
+    # Humans executing scripts from a terminal session still have an openable controlling tty (/dev/tty).
+    # Automated agent executions running in background sub-processes cannot open /dev/tty.
+    if [[ -c /dev/tty ]] && { true </dev/tty; } 2>/dev/null; then
+        return 1
     fi
 
-    return 1
+    # 4. No controlling terminal and non-interactive shell = agent/automation context
+    return 0
 }
 
 git() {
