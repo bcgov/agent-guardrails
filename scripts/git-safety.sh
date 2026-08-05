@@ -268,9 +268,9 @@ gh() {
                 echo "         Posting comments or reviews simulates human discussion/review and violates impersonation policies." >&2
                 echo "         HALT immediately. Output the details to the chat for the USER to post manually." >&2
                 return 1
-            elif [[ "$cmd" == "pr" && "$sub" == "merge" ]]; then
-                echo "BLOCKED: AI Agents are STRICTLY FORBIDDEN from merging Pull Requests." >&2
-                echo "         Under shared agent-instructions policy, all merges must be reviewed and executed manually by the USER." >&2
+            elif [[ "$cmd" == "pr" && ( "$sub" == "merge" || "$sub" == "close" ) ]]; then
+                echo "BLOCKED: AI Agents are STRICTLY FORBIDDEN from merging or closing Pull Requests." >&2
+                echo "         Under shared agent-instructions policy, merge/close must be executed manually by the USER." >&2
                 echo "         Do NOT attempt to bypass this block using absolute paths, alternate flags, or command overrides." >&2
                 echo "         HALT immediately and report to the user." >&2
                 return 1
