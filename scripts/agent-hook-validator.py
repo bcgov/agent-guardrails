@@ -61,11 +61,24 @@ def is_blocked(cmd_string):
 
     # 3. gh operations
     if cmd == "gh":
-        # Extract positional non-option tokens
+        # Positional subcommands, skipping global flags that take values (-R/--repo/...).
+        # Otherwise `gh -R owner/repo pr close` mis-parses owner/repo as the subcommand.
+        value_flags = {"-R", "--repo", "--app", "--host", "--hostname"}
         positional = []
-        for t in tokens[1:]:
-            if not t.startswith('-'):
-                positional.append(t.lower())
+        i = 1
+        while i < len(tokens):
+            t = tokens[i]
+            if t in value_flags:
+                i += 2
+                continue
+            if t.startswith("--") and "=" in t:
+                i += 1
+                continue
+            if t.startswith("-"):
+                i += 1
+                continue
+            positional.append(t.lower())
+            i += 1
 
         subcmd = positional[0] if positional else ""
         subsubcmd = positional[1] if len(positional) > 1 else ""
@@ -83,9 +96,14 @@ def is_blocked(cmd_string):
             if subsubcmd == "close" or (subcmd == "pr" and subsubcmd == "merge"):
                 return True, "Merging or closing Issues/PRs is strictly forbidden."
 
-            # Check for --comment / -c flag on ANY pr/issue command (e.g., gh pr close --comment "...")
+            # --comment / -c, including --comment=... , -c=..., and glued -cVALUE
             for t in tokens:
-                if t in ("-c", "--comment"):
+                if (
+                    t in ("-c", "--comment")
+                    or t.startswith("--comment=")
+                    or t.startswith("-c=")
+                    or (t.startswith("-c") and len(t) > 2 and not t.startswith("--"))
+                ):
                     return True, "Posting PR/Issue comments (including via --comment/-c flag) impersonates human developers and is strictly forbidden."
 
         if subcmd == "api":

@@ -24,7 +24,10 @@ assert_allow() {
 
 assert_deny 'gh pr close 15'
 assert_deny 'gh issue close 1'
+assert_deny 'gh -R owner/repo pr close 15'
 assert_deny 'gh pr close 15 --comment x'
+assert_deny 'gh pr close 15 --comment=x'
+assert_deny 'gh pr close 15 -c=x'
 assert_deny 'gh pr comment 15 --body x'
 assert_deny 'gh pr review 15 --approve'
 assert_deny 'gh pr merge 15'
@@ -36,6 +39,7 @@ assert_deny 'git push --force'
 assert_allow 'gh pr create --fill'
 assert_allow 'gh pr edit 15 --title x'
 assert_allow 'gh pr view 15'
+assert_allow 'gh -R owner/repo pr view 15'
 assert_allow 'git commit -m msg'
 assert_allow 'git push -u origin HEAD'
 

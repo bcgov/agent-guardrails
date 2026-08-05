@@ -277,7 +277,10 @@ gh() {
             fi
 
             for arg in "$@"; do
-                if [[ "$arg" == "-c" || "$arg" == "--comment" ]]; then
+                # Exact -c/--comment, --comment=..., -c=..., or glued -cVALUE
+                if [[ "$arg" == "-c" || "$arg" == "--comment" \
+                    || "$arg" == -c=* || "$arg" == --comment=* \
+                    || "$arg" =~ ^-c[^=].+ ]]; then
                     echo "BLOCKED: AI Agents are STRICTLY FORBIDDEN from posting PR/Issue comments." >&2
                     echo "         Using -c/--comment on gh $cmd $sub posts comments under human credentials." >&2
                     echo "         HALT immediately. Output the comment content to chat for the USER to post manually." >&2
