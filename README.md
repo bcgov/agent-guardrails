@@ -6,9 +6,11 @@ This repository establishes a client-side safety net that intercepts standard co
 
 *   **Infrastructure Safeguards**: Intercepts standard `oc` and `kubectl` execution to prevent AI agents from accidentally modifying or querying live Kubernetes/OpenShift environments.
 *   **Enforced Repository Standards**: Intercepts shortcut flags (like `commit --no-verify` or `--legacy-peer-deps`) to ensure AI-generated code passes the exact same linting, testing, and dependency checks as human code.
-*   **Accountability & Attribution**: Intercepts automated Pull Request merges, secret management, and release publishing via the GitHub CLI (`gh`), preserving human review as the final gate.
+*   **Accountability & Attribution**: Intercepts PR close/merge/comment/review, secret management, and release/tag publishing via `gh`/`git`, preserving human control of lifecycle actions. Agents may still create commits and open/update PRs.
 
 This is a safety belt, not a sandbox. It won't stop a malicious agent, but it prevents well-intentioned tools from making automated mistakes.
+
+**Soft policy vs this repo:** Behavioral instructions (tone, planning, when to implement) live in personal/org instruction files. **Checkable command bans live here.** Prefer adding a deny rule over lengthening prompts.
 
 ---
 
@@ -36,6 +38,11 @@ type git
 ```
 Running a blocked command (like `git config`) should trigger a blocked error message.
 
+Policy smoke test (deny/allow matrix):
+```bash
+./scripts/self-check.sh
+```
+
 ### Bypassing (For Human Developers)
 Legitimate overrides can be performed by prefixing commands with the `command` keyword:
 ```bash
@@ -44,6 +51,14 @@ command git config --local user.email "your.email@gov.bc.ca"
 
 ---
 
+## What Is Allowed (agents)
+
+| Tool | Allowed | Notes |
+| :--- | :--- | :--- |
+| **git** | `commit`, `push` (non-force), branch/checkout/fetch/merge-from-main | Normal feature work |
+| **gh** | `pr create`, `pr edit`, `pr view`, `pr diff`, `api` **GET** | Open/update PRs; read feedback |
+| **npm / npx** | Normal install/build/test without peer-deps bypass | — |
+
 ## What Is Blocked?
 
 The safety wrappers intercept commands and block specific actions based on repository policy:
@@ -51,16 +66,16 @@ The safety wrappers intercept commands and block specific actions based on repos
 | Tool | Blocked Action / Argument | Reason for Policy |
 | :--- | :--- | :--- |
 | **oc / kubectl** | All commands | Prevents automated cluster management and unauthorized access to environments. |
-| **git** | `commit --no-verify`, `commit -n` | Prevents agents from bypassing commit hooks. |
+| **git** | `commit --no-verify`, `commit -n`, `commit --amend` | Prevents agents from bypassing hooks or rewriting commits. |
 | **git** | `config` subcommand | Prevents modifications to global configurations. |
-| **git** | `tag` subcommand, `push --tags` | Restricts automated release/tag creation. |
+| **git** | write `tag`, `push --tags` | Restricts automated release/tag creation. |
 | **git** | `rebase -i`, `--interactive`, `squash`, `fixup`, `--autosquash` | Avoids squashing or history rewrite in branch history. |
-| **git** | `merge --squash` | Blocks squashing commits during PR merge. |
+| **git** | `merge --squash`, force push (`-f`, `--force`, `--force-with-lease`) | Blocks history rewrites on remotes. |
 | **gh** | `release` | Blocks automated release management. |
 | **gh** | `repo delete` | Prevents destructive repository deletions. |
 | **gh** | `secret` | Restricts automated credential/secret modifications. |
-| **gh** | `issue comment`, `pr comment`, `pr review` | Prevents impersonation of human developers in discussions. |
-| **gh** | `pr merge` | Forces PR merges to be performed manually by a human reviewer. |
+| **gh** | `issue comment`, `pr comment`, `pr review`, `--comment`/`-c` | Prevents posting under human credentials. |
+| **gh** | `pr merge`, `pr close`, `issue close`; mutating `api` to `/comments`, `/reviews`, or `state=closed` | Human-only issue/PR lifecycle (issues close via merged PRs). |
 | **npm / npx** | `--legacy-peer-deps` | Prevents dirty dependency resolution bypasses. |
 | **npm / npx** | `NPM_CONFIG_LEGACY_PEER_DEPS` environment variable | Blocks env-level peer dependency bypasses. |
 

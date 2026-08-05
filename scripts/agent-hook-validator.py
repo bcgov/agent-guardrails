@@ -51,7 +51,7 @@ def is_blocked(cmd_string):
                 
             elif subcmd == "push":
                 for t in tokens[subcmd_idx+1:]:
-                    if t in ("--tags", "-f", "--force"):
+                    if t in ("--tags", "-f", "--force") or t.startswith("--force-with-lease"):
                         return True, "AI Agents cannot manage tags or force push."
                         
             elif subcmd in ("rebase", "merge"):
@@ -61,27 +61,76 @@ def is_blocked(cmd_string):
 
     # 3. gh operations
     if cmd == "gh":
-        # Find subcommand
-        subcmd = None
-        subcmd_idx = -1
-        for i, t in enumerate(tokens[1:]):
-            if not t.startswith('-'):
-                subcmd = t.lower()
-                subcmd_idx = i + 1
-                break
-        
+        # Positional subcommands, skipping global flags that take values (-R/--repo/...).
+        # Otherwise `gh -R owner/repo pr close` mis-parses owner/repo as the subcommand.
+        value_flags = {"-R", "--repo", "--app", "--host", "--hostname"}
+        positional = []
+        i = 1
+        while i < len(tokens):
+            t = tokens[i]
+            if t in value_flags:
+                i += 2
+                continue
+            if t.startswith("--") and "=" in t:
+                i += 1
+                continue
+            if t.startswith("-"):
+                i += 1
+                continue
+            positional.append(t.lower())
+            i += 1
+
+        subcmd = positional[0] if positional else ""
+        subsubcmd = positional[1] if len(positional) > 1 else ""
+
         if subcmd == "release":
             return True, "Managing GitHub Releases is forbidden."
         elif subcmd == "secret":
             return True, "Managing repository secrets is forbidden."
-            
-        # Check compound commands like 'repo delete' or 'pr merge'
-        if subcmd_idx != -1 and subcmd_idx + 1 < len(tokens):
-            subsubcmd = tokens[subcmd_idx+1].lower()
-            if subcmd == "repo" and subsubcmd == "delete":
-                return True, "Repository deletion is strictly forbidden."
-            if subcmd in ("issue", "pr") and subsubcmd in ("comment", "review", "merge"):
-                return True, "Impersonating humans in PRs/Issues or merging PRs is forbidden."
+        elif subcmd == "repo" and subsubcmd == "delete":
+            return True, "Deleting repositories is forbidden."
+
+        if subcmd in ("issue", "pr"):
+            if subsubcmd in ("comment", "review"):
+                return True, "Impersonating humans in PRs/Issues is strictly forbidden."
+            if subsubcmd == "close" or (subcmd == "pr" and subsubcmd == "merge"):
+                return True, "Merging or closing Issues/PRs is strictly forbidden."
+
+            # --comment / -c, including --comment=... , -c=..., and glued -cVALUE
+            for t in tokens:
+                if (
+                    t in ("-c", "--comment")
+                    or t.startswith("--comment=")
+                    or t.startswith("-c=")
+                    or (t.startswith("-c") and len(t) > 2 and not t.startswith("--"))
+                ):
+                    return True, "Posting PR/Issue comments (including via --comment/-c flag) impersonates human developers and is strictly forbidden."
+
+        if subcmd == "api":
+            # Inspect HTTP method and flags
+            method = "GET"
+            fields = []
+            for idx, t in enumerate(tokens):
+                if t in ("-X", "--method") and idx + 1 < len(tokens):
+                    method = tokens[idx + 1].upper()
+                elif t in ("-f", "-F", "--raw-field", "--field", "--input"):
+                    if method == "GET":
+                        method = "POST"
+                    if idx + 1 < len(tokens):
+                        fields.append(tokens[idx + 1])
+
+            if method in ("POST", "PATCH", "PUT", "DELETE"):
+                joined = " ".join(tokens)
+                for t in tokens:
+                    if "/comments" in t or "/reviews" in t:
+                        return True, "Creating or updating comments/reviews via GitHub API impersonates human developers and is strictly forbidden."
+                # Close PR/issue via REST: PATCH .../pulls|issues/N with state=closed
+                if re.search(r"/pulls/\d+", joined) or re.search(r"/issues/\d+", joined):
+                    for f in fields:
+                        if f.lower() in ("state=closed", "state:closed") or f.lower().startswith("state=closed"):
+                            return True, "Closing PRs/issues via GitHub API is strictly forbidden."
+                    if "state=closed" in joined.lower() or '"state":"closed"' in joined.lower().replace(" ", ""):
+                        return True, "Closing PRs/issues via GitHub API is strictly forbidden."
 
     # 4. npm / npx operations
     if cmd in ("npm", "npx"):
