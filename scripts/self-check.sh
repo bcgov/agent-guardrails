@@ -23,6 +23,7 @@ assert_allow() {
 }
 
 assert_deny 'gh pr close 15'
+assert_deny 'gh issue close 1'
 assert_deny 'gh pr close 15 --comment x'
 assert_deny 'gh pr comment 15 --body x'
 assert_deny 'gh pr review 15 --approve'

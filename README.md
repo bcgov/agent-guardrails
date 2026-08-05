@@ -75,7 +75,7 @@ The safety wrappers intercept commands and block specific actions based on repos
 | **gh** | `repo delete` | Prevents destructive repository deletions. |
 | **gh** | `secret` | Restricts automated credential/secret modifications. |
 | **gh** | `issue comment`, `pr comment`, `pr review`, `--comment`/`-c` | Prevents posting under human credentials. |
-| **gh** | `pr merge`, `pr close`; mutating `api` to `/comments`, `/reviews`, or PR `state=closed` | Human-only PR lifecycle. |
+| **gh** | `pr merge`, `pr close`, `issue close`; mutating `api` to `/comments`, `/reviews`, or `state=closed` | Human-only issue/PR lifecycle (issues close via merged PRs). |
 | **npm / npx** | `--legacy-peer-deps` | Prevents dirty dependency resolution bypasses. |
 | **npm / npx** | `NPM_CONFIG_LEGACY_PEER_DEPS` environment variable | Blocks env-level peer dependency bypasses. |
 

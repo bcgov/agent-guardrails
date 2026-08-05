@@ -80,8 +80,8 @@ def is_blocked(cmd_string):
         if subcmd in ("issue", "pr"):
             if subsubcmd in ("comment", "review"):
                 return True, "Impersonating humans in PRs/Issues is strictly forbidden."
-            if subcmd == "pr" and subsubcmd in ("merge", "close"):
-                return True, "Merging or closing PRs is strictly forbidden."
+            if subsubcmd == "close" or (subcmd == "pr" and subsubcmd == "merge"):
+                return True, "Merging or closing Issues/PRs is strictly forbidden."
 
             # Check for --comment / -c flag on ANY pr/issue command (e.g., gh pr close --comment "...")
             for t in tokens:
