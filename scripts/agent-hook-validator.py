@@ -61,27 +61,45 @@ def is_blocked(cmd_string):
 
     # 3. gh operations
     if cmd == "gh":
-        # Find subcommand
-        subcmd = None
-        subcmd_idx = -1
-        for i, t in enumerate(tokens[1:]):
+        # Extract positional non-option tokens
+        positional = []
+        for t in tokens[1:]:
             if not t.startswith('-'):
-                subcmd = t.lower()
-                subcmd_idx = i + 1
-                break
-        
+                positional.append(t.lower())
+
+        subcmd = positional[0] if positional else ""
+        subsubcmd = positional[1] if len(positional) > 1 else ""
+
         if subcmd == "release":
             return True, "Managing GitHub Releases is forbidden."
         elif subcmd == "secret":
             return True, "Managing repository secrets is forbidden."
-            
-        # Check compound commands like 'repo delete' or 'pr merge'
-        if subcmd_idx != -1 and subcmd_idx + 1 < len(tokens):
-            subsubcmd = tokens[subcmd_idx+1].lower()
-            if subcmd == "repo" and subsubcmd == "delete":
-                return True, "Repository deletion is strictly forbidden."
-            if subcmd in ("issue", "pr") and subsubcmd in ("comment", "review", "merge"):
-                return True, "Impersonating humans in PRs/Issues or merging PRs is forbidden."
+
+        if subcmd in ("issue", "pr"):
+            if subsubcmd in ("comment", "review"):
+                return True, "Impersonating humans in PRs/Issues is strictly forbidden."
+            if subcmd == "pr" and subsubcmd == "merge":
+                return True, "Merging PRs is strictly forbidden."
+
+            # Check for --comment / -c flag on ANY pr/issue command (e.g., gh pr close --comment "...")
+            for t in tokens:
+                if t in ("-c", "--comment"):
+                    return True, "Posting PR/Issue comments (including via --comment/-c flag) impersonates human developers and is strictly forbidden."
+
+        if subcmd == "api":
+            # Inspect HTTP method and flags
+            method = "GET"
+            for idx, t in enumerate(tokens):
+                if t in ("-X", "--method") and idx + 1 < len(tokens):
+                    method = tokens[idx + 1].upper()
+                elif t in ("-f", "-F", "--raw-field", "--field", "--input"):
+                    if method == "GET":
+                        method = "POST"
+
+            if method in ("POST", "PATCH", "PUT", "DELETE"):
+                for t in tokens:
+                    if "/comments" in t or "/reviews" in t:
+                        return True, "Creating or updating comments/reviews via GitHub API impersonates human developers and is strictly forbidden."
 
     # 4. npm / npx operations
     if cmd in ("npm", "npx"):

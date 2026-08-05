@@ -29,6 +29,11 @@ _is_ai_agent() {
 }
 
 git() {
+    if ! _is_ai_agent; then
+        command git "$@"
+        return $?
+    fi
+
     # Skip during tab completion
     if [[ -z "${COMP_LINE:-}" && -z "${COMP_POINT:-}" ]]; then
         # Identify the subcommand (skip global options like -C, -c, etc.)
@@ -210,6 +215,11 @@ git() {
 }
 
 gh() {
+    if ! _is_ai_agent; then
+        command gh "$@"
+        return $?
+    fi
+
     # Skip during tab completion
     if [[ -z "${COMP_LINE:-}" && -z "${COMP_POINT:-}" ]]; then
         # Identify command and subcommand (skip global options like -R, --repo, etc.)
@@ -252,25 +262,61 @@ gh() {
             echo "         Secret management must be handled directly by the USER." >&2
             echo "         HALT immediately." >&2
             return 1
-        elif [[ "$cmd" == "issue" ]]; then
-            if [[ "$sub" == "comment" ]]; then
-                echo "BLOCKED: AI Agents are STRICTLY FORBIDDEN from commenting on issues." >&2
-                echo "         Posting comments simulates human discussion and violates impersonation policies." >&2
-                echo "         HALT immediately. Output the comment content to the chat for the USER to post manually." >&2
-                return 1
-            fi
-        elif [[ "$cmd" == "pr" ]]; then
+        elif [[ "$cmd" == "issue" || "$cmd" == "pr" ]]; then
             if [[ "$sub" == "comment" || "$sub" == "review" ]]; then
-                echo "BLOCKED: AI Agents are STRICTLY FORBIDDEN from commenting on or reviewing Pull Requests." >&2
+                echo "BLOCKED: AI Agents are STRICTLY FORBIDDEN from commenting on or reviewing Issues or Pull Requests." >&2
                 echo "         Posting comments or reviews simulates human discussion/review and violates impersonation policies." >&2
                 echo "         HALT immediately. Output the details to the chat for the USER to post manually." >&2
                 return 1
-            elif [[ "$sub" == "merge" ]]; then
+            elif [[ "$cmd" == "pr" && "$sub" == "merge" ]]; then
                 echo "BLOCKED: AI Agents are STRICTLY FORBIDDEN from merging Pull Requests." >&2
                 echo "         Under shared agent-instructions policy, all merges must be reviewed and executed manually by the USER." >&2
                 echo "         Do NOT attempt to bypass this block using absolute paths, alternate flags, or command overrides." >&2
                 echo "         HALT immediately and report to the user." >&2
                 return 1
+            fi
+
+            for arg in "$@"; do
+                if [[ "$arg" == "-c" || "$arg" == "--comment" ]]; then
+                    echo "BLOCKED: AI Agents are STRICTLY FORBIDDEN from posting PR/Issue comments." >&2
+                    echo "         Using -c/--comment on gh $cmd $sub posts comments under human credentials." >&2
+                    echo "         HALT immediately. Output the comment content to chat for the USER to post manually." >&2
+                    return 1
+                fi
+            done
+        elif [[ "$cmd" == "api" ]]; then
+            local method="GET"
+            local has_data=false
+            local idx=0
+            local raw_args=("$@")
+            while [[ $idx -lt ${#raw_args[@]} ]]; do
+                case "${raw_args[$idx]}" in
+                    -X|--method)
+                        method="$(echo "${raw_args[$((idx+1))]}" | tr '[:lower:]' '[:upper:]')"
+                        ((idx+=2))
+                        ;;
+                    -f|-F|--field|--raw-field|--input)
+                        has_data=true
+                        ((idx+=2))
+                        ;;
+                    *)
+                        ((idx+=1))
+                        ;;
+                esac
+            done
+
+            if [[ "$has_data" == "true" && "$method" == "GET" ]]; then
+                method="POST"
+            fi
+
+            if [[ "$method" != "GET" ]]; then
+                for arg in "$@"; do
+                    if [[ "$arg" =~ /comments(/|$) || "$arg" =~ /reviews(/|$) ]]; then
+                        echo "BLOCKED: AI Agents are STRICTLY FORBIDDEN from creating or updating comments/reviews via GitHub API." >&2
+                        echo "         HALT immediately. Output the message to chat for the USER to post manually." >&2
+                        return 1
+                    fi
+                done
             fi
         fi
     fi
@@ -279,6 +325,11 @@ gh() {
 }
 
 npm() {
+    if ! _is_ai_agent; then
+        command npm "$@"
+        return $?
+    fi
+
     # Skip during tab completion
     if [[ -z "${COMP_LINE:-}" && -z "${COMP_POINT:-}" ]]; then
         # Block environment-based bypass vector
@@ -304,6 +355,11 @@ npm() {
 }
 
 npx() {
+    if ! _is_ai_agent; then
+        command npx "$@"
+        return $?
+    fi
+
     # Skip during tab completion
     if [[ -z "${COMP_LINE:-}" && -z "${COMP_POINT:-}" ]]; then
         # Block environment-based bypass vector
