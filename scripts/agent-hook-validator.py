@@ -51,7 +51,7 @@ def is_blocked(cmd_string):
                 
             elif subcmd == "push":
                 for t in tokens[subcmd_idx+1:]:
-                    if t in ("--tags", "-f", "--force"):
+                    if t in ("--tags", "-f", "--force") or t.startswith("--force-with-lease"):
                         return True, "AI Agents cannot manage tags or force push."
                         
             elif subcmd in ("rebase", "merge"):
@@ -74,6 +74,8 @@ def is_blocked(cmd_string):
             return True, "Managing GitHub Releases is forbidden."
         elif subcmd == "secret":
             return True, "Managing repository secrets is forbidden."
+        elif subcmd == "repo" and subsubcmd == "delete":
+            return True, "Deleting repositories is forbidden."
 
         if subcmd in ("issue", "pr"):
             if subsubcmd in ("comment", "review"):
@@ -89,17 +91,28 @@ def is_blocked(cmd_string):
         if subcmd == "api":
             # Inspect HTTP method and flags
             method = "GET"
+            fields = []
             for idx, t in enumerate(tokens):
                 if t in ("-X", "--method") and idx + 1 < len(tokens):
                     method = tokens[idx + 1].upper()
                 elif t in ("-f", "-F", "--raw-field", "--field", "--input"):
                     if method == "GET":
                         method = "POST"
+                    if idx + 1 < len(tokens):
+                        fields.append(tokens[idx + 1])
 
             if method in ("POST", "PATCH", "PUT", "DELETE"):
+                joined = " ".join(tokens)
                 for t in tokens:
                     if "/comments" in t or "/reviews" in t:
                         return True, "Creating or updating comments/reviews via GitHub API impersonates human developers and is strictly forbidden."
+                # Close PR/issue via REST: PATCH .../pulls|issues/N with state=closed
+                if re.search(r"/pulls/\d+", joined) or re.search(r"/issues/\d+", joined):
+                    for f in fields:
+                        if f.lower() in ("state=closed", "state:closed") or f.lower().startswith("state=closed"):
+                            return True, "Closing PRs/issues via GitHub API is strictly forbidden."
+                    if "state=closed" in joined.lower() or '"state":"closed"' in joined.lower().replace(" ", ""):
+                        return True, "Closing PRs/issues via GitHub API is strictly forbidden."
 
     # 4. npm / npx operations
     if cmd in ("npm", "npx"):

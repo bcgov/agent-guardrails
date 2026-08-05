@@ -310,6 +310,7 @@ gh() {
             fi
 
             if [[ "$method" != "GET" ]]; then
+                local joined="$*"
                 for arg in "$@"; do
                     if [[ "$arg" =~ /comments(/|$) || "$arg" =~ /reviews(/|$) ]]; then
                         echo "BLOCKED: AI Agents are STRICTLY FORBIDDEN from creating or updating comments/reviews via GitHub API." >&2
@@ -317,6 +318,14 @@ gh() {
                         return 1
                     fi
                 done
+                # Close via REST: PATCH .../pulls|issues/N -f state=closed
+                if [[ "$joined" =~ /pulls/[0-9]+ || "$joined" =~ /issues/[0-9]+ ]]; then
+                    if [[ "$joined" =~ [Ss]tate[=:][Cc]losed ]]; then
+                        echo "BLOCKED: AI Agents are STRICTLY FORBIDDEN from closing PRs/issues via GitHub API." >&2
+                        echo "         HALT immediately and report to the user." >&2
+                        return 1
+                    fi
+                fi
             fi
         fi
     fi
