@@ -1,7 +1,3 @@
-# Status: Archived
-
-This repo was a failed attempt to share agent guardrails.  If you think this was worthwhile and want to collaborate, then get in touch!
-
 # Agent Guardrails
 
 > [!NOTE]
