@@ -12,6 +12,7 @@ AI-assisted development accelerates velocity, but autonomous agents require guar
 This repository establishes a client-side safety net that intercepts standard command paths to enforce a **human-in-the-loop** workflow:
 
 *   **Infrastructure Safeguards**: Intercepts standard `oc` and `kubectl` execution to prevent AI agents from accidentally modifying or querying live Kubernetes/OpenShift environments.
+*   **Data-Layer Safeguards**: Intercepts `overwrite: true` in deployment workflows and infrastructure manifests, preventing accidental destructive replacements of stateful/database workloads.
 *   **Enforced Repository Standards**: Intercepts shortcut flags (like `commit --no-verify` or `--legacy-peer-deps`) to ensure AI-generated code passes the exact same linting, testing, and dependency checks as human code.
 *   **Accountability & Attribution**: Intercepts PR close/merge/comment/review, secret management, and release/tag publishing via `gh`/`git`, preserving human control of lifecycle actions. Agents may still create commits and open/update PRs.
 
@@ -73,6 +74,7 @@ The safety wrappers intercept commands and block specific actions based on repos
 | Tool | Blocked Action / Argument | Reason for Policy |
 | :--- | :--- | :--- |
 | **oc / kubectl** | All commands | Prevents automated cluster management and unauthorized access to environments. |
+| **git (hook)** | Staged `overwrite: true` on deployment configs | Protects databases and stateful workloads from accidental destructive recreation. |
 | **git** | `commit --no-verify`, `commit -n`, `commit --amend` | Prevents agents from bypassing hooks or rewriting commits. |
 | **git** | `config` subcommand | Prevents modifications to global configurations. |
 | **git** | write `tag`, `push --tags` | Restricts automated release/tag creation. |
