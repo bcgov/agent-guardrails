@@ -1,5 +1,12 @@
 # Agent Guardrails
 
+> [!NOTE]
+> **Project Status: Dormant**
+> 
+> These guardrails are complete and can be used immediately in your local setup or individual repositories.
+> 
+> We are looking for someone to champion these guardrails adoption across the `bcgov` GitHub organization. If you have the interest and influence to push this forward, please open an issue or discussion in this repository to coordinate.
+
 AI-assisted development accelerates velocity, but autonomous agents require guardrails to protect shared environments and maintain compliance.
 
 This repository establishes a client-side safety net that intercepts standard command paths to enforce a **human-in-the-loop** workflow:
